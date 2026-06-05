@@ -205,20 +205,24 @@ export function ComercioInfo({
         {/* Contacto principal */}
         <div className="space-y-3">
           <h3 className="text-md font-semibold text-gray-200 flex items-center gap-2"><Phone className="h-4 w-4" /> Contacto principal</h3>
-          <Input
-            label="Teléfono / WhatsApp"
-            value={telefono}
-            onChange={(e) => setTelefono(e.target.value)}
-            placeholder="+593 99 999 9999"
-            className="bg-gray-800/50 border-gray-700 text-white"
-          />
-          <Input
-            label="Email de contacto"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="correo@ejemplo.com"
-            className="bg-gray-800/50 border-gray-700 text-white"
-          />
+          <div>
+  <label className="block text-sm text-gray-400 mb-1">Teléfono / WhatsApp</label>
+  <input
+    value={telefono}
+    onChange={(e) => setTelefono(e.target.value)}
+    placeholder="+593 99 999 9999"
+    className="w-full bg-gray-800/50 border border-gray-700 text-white p-2 rounded-lg"
+  />
+</div>
+          <div>
+  <label className="block text-sm text-gray-400 mb-1">Email de contacto</label>
+  <input
+    value={email}
+    onChange={(e) => setEmail(e.target.value)}
+    placeholder="correo@ejemplo.com"
+    className="w-full bg-gray-800/50 border border-gray-700 text-white p-2 rounded-lg"
+  />
+</div>
         </div>
         
         {/* Sucursales (múltiples) */}
