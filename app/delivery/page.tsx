@@ -1,52 +1,25 @@
 // app/delivery/page.tsx
 'use client'
 
-import { useState } from 'react'
-import dynamic from 'next/dynamic'
-import { WeatherProvider, useWeather } from '@/contexts/WeatherContext'
+import { useRouter } from 'next/navigation'
+import { WeatherProvider } from '@/contexts/WeatherContext'
 import SpaceshipView from './spaceship-view'
 
-// Importamos el mapa dinámicamente
-const DynamicMap = dynamic(
-  () => import('@/app/delivery/components/live-map'),
-  { ssr: false, loading: () => <div className="h-80 bg-gray-200 animate-pulse flex items-center justify-center rounded-lg">🗺️ Cargando mapa...</div> }
-)
+function DeliveryIntroContent() {
+  const router = useRouter()
 
-function DeliveryDashboardContent() {
-  const { weather } = useWeather()
-  const [missionActive, setMissionActive] = useState(false)
-
+  // Al terminar la secuencia de la nave, entramos al panel operativo real.
   const handleMissionStart = () => {
-    setMissionActive(true)
+    router.push('/delivery-map')
   }
 
-  if (!missionActive) {
-    return <SpaceshipView onMissionStart={handleMissionStart} />
-  }
-
-  const isNight = weather?.isNight || false
-
-  return (
-    <div className={`min-h-screen transition-all duration-500 ${isNight ? 'bg-gray-900' : 'bg-gray-100'}`}>
-      {/* Aquí va el mapa y el panel de delivery normal */}
-      <div className="p-4">
-        <div className="max-w-md mx-auto">
-          <div className="h-80 rounded-xl overflow-hidden">
-            <DynamicMap />
-          </div>
-          <p className="text-center mt-4 text-gray-500">
-            🚀 Misión en curso - Dirígete al restaurante
-          </p>
-        </div>
-      </div>
-    </div>
-  )
+  return <SpaceshipView onMissionStart={handleMissionStart} />
 }
 
-export default function DeliveryDashboard() {
+export default function DeliveryIntroPage() {
   return (
     <WeatherProvider>
-      <DeliveryDashboardContent />
+      <DeliveryIntroContent />
     </WeatherProvider>
   )
 }

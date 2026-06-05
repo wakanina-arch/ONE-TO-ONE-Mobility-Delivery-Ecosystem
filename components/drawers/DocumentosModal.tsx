@@ -21,8 +21,7 @@ export function DocumentosModal({ open, onClose }: { open: boolean; onClose: () 
     { nombre: 'A propósito de la Ley Rider', ruta: '/documentos/ApropósitoDeLa_ley_rider.pdf' },
     { nombre: 'BOE Real Decreto-ley 9/2021 - Ley Rider', ruta: '/documentos/BOE-Real Decreto-ley 9:2021-LeyRider.pdf' },
     { nombre: 'Libro Orígenes 2018', ruta: '/documentos/LIBRO_ORIGENES_2018.pdf' },
-    { nombre: 'One To One', ruta: '/documentos/OneToOne .pdf' },
-    { nombre: 'Manual de Usuario - ONE TO ONE', ruta: '/documentos/manual-usuario.pdf' },
+    { nombre: 'One To One', ruta: '/documentos/OneToOne.pdf' },
   ]
 
   const documentosFiltrados = documentos.filter(doc =>

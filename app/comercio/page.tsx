@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, Suspense } from 'react'
 import { useSocket, usePersistedOrders } from '@/lib/socket-context'
 import { type Order, useOrdersStore } from '@/lib/store'
 import { useOrderStore } from '@/lib/store/order-store'
@@ -181,7 +181,7 @@ const imprimirComanda = (order: Order) => {
   printWindow.document.close()
 }
 
-export default function ComercioPage() {
+function ComercioPanel() {
   const persistedOrders = usePersistedOrders()
   const [orders, setOrders] = useState<Order[]>(() => persistedOrders)
   const [activeTab, setActiveTab] = useState<Tab>('recepcion')
@@ -444,8 +444,8 @@ export default function ComercioPage() {
       <Button variant="ghost" size="icon" className="h-8 w-8">
         <Home className="h-4 w-4" />
       </Button>
-      <span className="text-xs font-medium">Panel Comercio</span>
     </Link>
+    <span className="text-xs font-medium">Panel Comercio</span>
   </div>
   
   <div className="flex items-center gap-1.5">
@@ -649,30 +649,10 @@ export default function ComercioPage() {
 
       {/* ========== MODAL DOCUMENTOS ========== */}
       {showDocumentos && (
-        <div className="fixed inset-0 z-[9999] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-gray-900 rounded-2xl max-w-2xl w-full max-h-[85vh] flex flex-col animate-fade-in shadow-2xl border border-olive-500/30">
-            <div className="flex justify-between items-center p-4 border-b border-gray-700">
-              <h2 className="text-lg font-bold text-white flex items-center gap-2"><FileText className="h-5 w-5" /> Documentos</h2>
-              <button
-  onClick={() => {
-    setShowDocumentos(true)
-    setShowDocumentosSubmenu(false)
-  }}
-  className="w-full text-left px-4 py-2 text-sm hover:bg-muted transition-colors flex items-center gap-2"
->
-  <FileText className="h-4 w-4" /> Ver Documentos
-              </button>
-              <button onClick={() => setShowDocumentos(false)} className="text-gray-400 hover:text-white"><X className="h-5 w-5" /></button>
-            </div>
-            <DocumentosModal 
-  open={showDocumentos}
-  onClose={() => setShowDocumentos(false)}  // ← antes setShowDocumentosModal(false)
-/>
-            <div className="flex-1 overflow-y-auto p-4">
-              <p className="text-gray-400 text-center py-8">Documentación disponible próximamente</p>
-            </div>
-          </div>
-        </div>
+        <DocumentosModal
+          open={showDocumentos}
+          onClose={() => setShowDocumentos(false)}
+        />
       )}
 
       <div className="p-2 grid grid-cols-3 gap-2">
