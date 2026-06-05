@@ -48,8 +48,7 @@ export const useOrderNotificationStore = create<OrderNotificationStore>()(
             body: `Pedido #${pedido.ordenId}\nTotal: $${pedido.total}\n${pedido.items.length} productos`,
             icon: '/favicon.ico',
             tag: pedido.id,
-            vibrate: [200, 100, 200] // Vibración en móviles
-          });
+          } as NotificationOptions);
         }
         
         // Si no hay permiso, pedirlo

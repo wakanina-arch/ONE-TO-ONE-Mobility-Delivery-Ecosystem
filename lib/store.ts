@@ -48,6 +48,9 @@ export interface Comercio {
   direccion: string
   telefono: string
   logo?: string
+  imagen?: string
+  especialidad?: string
+  descripcion?: string
   horario?: {
     apertura: string
     cierre: string
