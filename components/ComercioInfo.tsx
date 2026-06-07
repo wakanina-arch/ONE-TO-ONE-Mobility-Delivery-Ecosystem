@@ -4,8 +4,7 @@ import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Card } from '@/components/ui/card'
-import { MapPin, Phone, Star, CheckCircle, Clock, AlertCircle, X, Plus, Trash2, Globe2, MessageSquare } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { MapPin, Phone, Star, X, Plus, Trash2, Globe2, MessageSquare } from 'lucide-react'
 
 interface Sucursal {
   id: string
@@ -58,7 +57,6 @@ export function ComercioInfo({
   const [email, setEmail] = useState('')
   const [cuñaPublicitaria, setCuñaPublicitaria] = useState('')
   const [sucursales, setSucursales] = useState<Sucursal[]>([])
-  const [editandoSucursal, setEditandoSucursal] = useState<string | null>(null)
   
   const [redesSociales, setRedesSociales] = useState<RedSocial[]>([
     { id: 'facebook', activa: false, url: '', label: 'Facebook', icon: <span className="h-4 w-4">F</span> },
@@ -109,7 +107,6 @@ export function ComercioInfo({
       lat: 0,
       lng: 0
     }])
-    setEditandoSucursal(Date.now().toString())
   }
   
   const eliminarSucursal = (id: string) => {
@@ -132,14 +129,6 @@ export function ComercioInfo({
     setComentarios([nuevo, ...comentarios])
     setNuevoComentario('')
     setNuevoNombre('')
-  }
-  
-  const aprobarComentario = (id: string) => {
-    setComentarios(comentarios.map(c => c.id === id ? { ...c, estado: 'aprobado' } : c))
-  }
-  
-  const rechazarComentario = (id: string) => {
-    setComentarios(comentarios.filter(c => c.id !== id))
   }
   
   const comentariosAprobados = comentarios.filter(c => c.estado === 'aprobado')
@@ -357,4 +346,3 @@ export function ComercioInfo({
     </div>
   )
 }
-
