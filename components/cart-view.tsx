@@ -4,6 +4,7 @@ import Image from 'next/image'
 import { useState } from 'react'
 import { useCartStore, COMERCIO_DEMO, type Order } from '@/lib/store'
 import { useOrderStore } from '@/lib/store/order-store'
+import { createOrder as createOrderSupabase, ensureUser } from '@/lib/supabase/orders'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -42,53 +43,91 @@ export function CartView({ onBack, onOrderComplete }: CartViewProps) {
   const total = getTotal()
   const isEmpty = items.length === 0
 
-  const handleSubmit = async (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (isEmpty) return
-    
+
     setStep('processing')
-    
-    await new Promise(resolve => setTimeout(resolve, 1500))
-    
-    const newOrder: Order = {
-      id: generateOrderId(),
-      cliente: {
-        nombre: form.nombre,
-        telefono: form.telefono,
-        email: form.email
-      },
-      items: items.map(item => ({
-        ...item,
-        notas: form.notas
-      })),
-      total,
-      estado: 'pendiente',
-      metodoPago: form.metodoPago,
-      tipoEntrega: form.tipoEntrega,
-      direccion: form.tipoEntrega === 'domicilio' ? form.direccion : undefined,
-      notas: form.notas,
-      fechaCreacion: new Date().toISOString(),
-      fechaActualizacion: new Date().toISOString(),
-      comercioId: COMERCIO_DEMO.id
+
+    try {
+      // 1. Leer comercio real desde localStorage
+      const comercioGuardado = localStorage.getItem('comercio_seleccionado')
+      if (!comercioGuardado) {
+        alert('No se ha seleccionado un comercio')
+        setStep('cart')
+        return
+      }
+      const comercio = JSON.parse(comercioGuardado)
+
+      // 2. Garantizar usuario (anónimo si es necesario)
+      const customerId = await ensureUser()
+
+      // 3. Calcular total con delivery si aplica
+      const totalConDelivery = total + (form.tipoEntrega === 'domicilio' ? 1.50 : 0)
+
+      // 4. Crear pedido en Supabase
+      const orderCreado = await createOrderSupabase({
+        customer_id: customerId,
+        merchant_id: comercio.id,
+        items: items.map(item => ({
+          product_id: item.id,
+          quantity: item.cantidad,
+          price: item.precio
+        })),
+        total: totalConDelivery,
+        delivery_address: form.tipoEntrega === 'domicilio' ? form.direccion : undefined,
+        payment_method: form.metodoPago,
+        notes: form.notas
+      })
+
+      // 5. Construir el Order viejo para el ticket
+      const newOrder: Order = {
+        id: orderCreado.id,
+        cliente: {
+          nombre: form.nombre,
+          telefono: form.telefono,
+          email: form.email
+        },
+        items: items.map(item => ({
+          ...item,
+          notas: form.notas
+        })),
+        total: totalConDelivery,
+        estado: 'pendiente',
+        metodoPago: form.metodoPago,
+        tipoEntrega: form.tipoEntrega,
+        direccion: form.tipoEntrega === 'domicilio' ? form.direccion : undefined,
+        notas: form.notas,
+        fechaCreacion: new Date().toISOString(),
+        fechaActualizacion: new Date().toISOString(),
+        comercioId: comercio.id
+      }
+
+      // 6. También guardar en el store viejo (por si el ticket lo usa)
+      createOrder({
+        comercioId: comercio.id,
+        comercioName: comercio.nombre,
+        clienteName: form.nombre,
+        clienteAddress: form.direccion || '',
+        clienteLat: -0.1810,
+        clienteLng: -78.4800,
+        items: items.map(item => ({
+          name: item.nombre,
+          quantity: item.cantidad,
+          price: item.precio
+        })),
+        total: totalConDelivery
+      })
+
+      // 7. Limpiar y redirigir al ticket
+      clearCart()
+      onOrderComplete(newOrder)
+
+    } catch (error) {
+      console.error('Error creando pedido:', error)
+      alert('Hubo un error al procesar tu pedido. Inténtalo de nuevo.')
+      setStep('cart')
     }
-
-    createOrder({
-      comercioId: COMERCIO_DEMO.id,
-      comercioName: COMERCIO_DEMO.nombre,
-      clienteName: form.nombre,
-      clienteAddress: form.tipoEntrega === 'domicilio' ? form.direccion || COMERCIO_DEMO.direccion : COMERCIO_DEMO.direccion,
-      clienteLat: form.tipoEntrega === 'domicilio' ? -0.1810 : -0.1807,
-      clienteLng: form.tipoEntrega === 'domicilio' ? -78.4800 : -78.4803,
-      items: items.map(item => ({
-        name: item.nombre,
-        quantity: item.cantidad,
-        price: item.precio
-      })),
-      total
-    })
-
-    clearCart()
-    onOrderComplete(newOrder)
   }
 
   if (step === 'processing') {
