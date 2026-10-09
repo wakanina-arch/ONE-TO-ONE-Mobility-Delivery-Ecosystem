@@ -4,52 +4,74 @@ import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'
-import { Lock, X, AlertCircle, Store } from 'lucide-react'
+import { Lock, X, AlertCircle, Store, Bike } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
 interface PanelAccessModalProps {
   open: boolean
   onClose: () => void
-  onSuccess: (merchantId: string, merchantName: string) => void
+  onSuccess: (type: 'merchant' | 'rider', id: string, name: string) => void
 }
 
-// 🔑 Clave de localStorage para la sesión
 const SESSION_KEY = 'onetoone_panel_session'
 
 interface Session {
-  merchantId: string
-  merchantName: string
+  type: 'merchant' | 'rider'
+  id: string
+  name: string
+  avatar?: string
   grantedAt: string
   expiresAt: string
 }
 
+interface OptionItem {
+  type: 'merchant' | 'rider'
+  id: string
+  name: string
+  avatar?: string
+}
+
 export function PanelAccessModal({ open, onClose, onSuccess }: PanelAccessModalProps) {
-  const [merchants, setMerchants] = useState<{ id: string; name: string }[]>([])
-  const [loadingMerchants, setLoadingMerchants] = useState(true)
-  const [selectedId, setSelectedId] = useState('')
+  const [merchants, setMerchants] = useState<OptionItem[]>([])
+  const [riders, setRiders] = useState<OptionItem[]>([])
+  const [loading, setLoading] = useState(true)
+  const [selectedKey, setSelectedKey] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
 
-  // Cargar los comercios al abrir
   useEffect(() => {
     if (!open) return
 
     const cargar = async () => {
-      setLoadingMerchants(true)
+      setLoading(true)
       const supabase = createClient()
-      const { data, error } = await supabase
-        .from('merchants')
-        .select('id, name')
-        .eq('active', true)
-        .order('name')
 
-      if (error) {
-        console.error('Error cargando comercios:', error)
-        setMerchants([])
-      } else {
-        setMerchants(data || [])
-      }
-      setLoadingMerchants(false)
+      const [mRes, rRes] = await Promise.all([
+        supabase.from('merchants').select('id, name').eq('active', true).order('name'),
+        supabase.from('riders').select('id, username, avatar').eq('active', true).order('username'),
+      ])
+
+      if (mRes.error) console.error('Error merchants:', mRes.error)
+      if (rRes.error) console.error('Error riders:', rRes.error)
+
+      setMerchants(
+        (mRes.data || []).map((m) => ({
+          type: 'merchant' as const,
+          id: m.id,
+          name: m.name,
+        }))
+      )
+
+      setRiders(
+        (rRes.data || []).map((r) => ({
+          type: 'rider' as const,
+          id: r.id,
+          name: r.username || 'Ryder',
+          avatar: r.avatar || undefined,
+        }))
+      )
+
+      setLoading(false)
     }
 
     cargar()
@@ -61,9 +83,8 @@ export function PanelAccessModal({ open, onClose, onSuccess }: PanelAccessModalP
     e.preventDefault()
     setError('')
 
-    // Validaciones
-    if (!selectedId) {
-      setError('Selecciona un comercio')
+    if (!selectedKey) {
+      setError('Selecciona un acceso')
       return
     }
     if (!password) {
@@ -71,44 +92,68 @@ export function PanelAccessModal({ open, onClose, onSuccess }: PanelAccessModalP
       return
     }
 
-    // Buscar el comercio seleccionado
-    const merchantIndex = merchants.findIndex(m => m.id === selectedId)
-    if (merchantIndex === -1) {
-      setError('Comercio no válido')
-      return
-    }
+    // selectedKey = "merchant:uuid" o "rider:uuid"
+    const [type, id] = selectedKey.split(':') as ['merchant' | 'rider', string]
 
-    // La contraseña es el número de posición (01, 02, 03...)
-    const expectedPassword = String(merchantIndex + 1).padStart(2, '0')
-
-    if (password !== expectedPassword) {
-      setError('Contraseña incorrecta')
+    if (type === 'merchant') {
+      const idx = merchants.findIndex((m) => m.id === id)
+      if (idx === -1) {
+        setError('Comercio no válido')
+        return
+      }
+      const expectedPassword = String(idx + 1).padStart(2, '0')
+      if (password !== expectedPassword) {
+        setError('Contraseña incorrecta')
+        setPassword('')
+        return
+      }
+      const merchant = merchants[idx]
+      const session: Session = {
+        type: 'merchant',
+        id: merchant.id,
+        name: merchant.name,
+        grantedAt: new Date().toISOString(),
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+      }
+      localStorage.setItem(SESSION_KEY, JSON.stringify(session))
       setPassword('')
-      return
+      setSelectedKey('')
+      setError('')
+      onSuccess('merchant', merchant.id, merchant.name)
+    } else {
+      // Rider: contraseña = el propio número (101, 102, ...)
+      const rider = riders.find((r) => r.id === id)
+      if (!rider) {
+        setError('Ryder no válido')
+        return
+      }
+      // Extraer el número del nombre: "Ryder 101" → "101"
+      const match = rider.name.match(/(\d+)/)
+      const expectedPassword = match ? match[1] : ''
+      if (password !== expectedPassword) {
+        setError('Contraseña incorrecta')
+        setPassword('')
+        return
+      }
+      const session: Session = {
+        type: 'rider',
+        id: rider.id,
+        name: rider.name,
+        avatar: rider.avatar,
+        grantedAt: new Date().toISOString(),
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+      }
+      localStorage.setItem(SESSION_KEY, JSON.stringify(session))
+      setPassword('')
+      setSelectedKey('')
+      setError('')
+      onSuccess('rider', rider.id, rider.name)
     }
-
-    // ✅ Acceso concedido
-    const merchant = merchants[merchantIndex]
-    const session: Session = {
-      merchantId: merchant.id,
-      merchantName: merchant.name,
-      grantedAt: new Date().toISOString(),
-      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-    }
-    localStorage.setItem(SESSION_KEY, JSON.stringify(session))
-
-    // Reset
-    setPassword('')
-    setSelectedId('')
-    setError('')
-
-    // Callback
-    onSuccess(merchant.id, merchant.name)
   }
 
   const handleClose = () => {
     setPassword('')
-    setSelectedId('')
+    setSelectedKey('')
     setError('')
     onClose()
   }
@@ -116,7 +161,6 @@ export function PanelAccessModal({ open, onClose, onSuccess }: PanelAccessModalP
   return (
     <div className="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
       <Card className="bg-gray-900 border-primary/30 rounded-2xl max-w-sm w-full p-6 shadow-2xl">
-        {/* Header */}
         <div className="flex justify-between items-center mb-4">
           <div className="flex items-center gap-2">
             <Lock className="h-5 w-5 text-primary" />
@@ -131,15 +175,14 @@ export function PanelAccessModal({ open, onClose, onSuccess }: PanelAccessModalP
         </div>
 
         <p className="text-xs text-gray-400 mb-4">
-          Selecciona tu comercio e introduce la contraseña
+          Selecciona tu acceso e introduce la contraseña
         </p>
 
-        {/* Formulario */}
         <form onSubmit={handleSubmit} className="space-y-3">
-          {/* Selector de comercio */}
+          {/* Selector */}
           <div>
-            <label className="text-xs text-gray-400 mb-1 block">Comercio</label>
-            {loadingMerchants ? (
+            <label className="text-xs text-gray-400 mb-1 block">Comercio / Ryder</label>
+            {loading ? (
               <div className="h-10 flex items-center justify-center bg-gray-800/50 rounded-lg border border-gray-700">
                 <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
               </div>
@@ -147,19 +190,30 @@ export function PanelAccessModal({ open, onClose, onSuccess }: PanelAccessModalP
               <div className="relative">
                 <Store className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 pointer-events-none" />
                 <select
-                  value={selectedId}
+                  value={selectedKey}
                   onChange={(e) => {
-                    setSelectedId(e.target.value)
+                    setSelectedKey(e.target.value)
                     setError('')
                   }}
                   className="w-full h-10 pl-10 pr-3 bg-gray-800/50 border border-gray-700 text-white rounded-lg text-sm appearance-none cursor-pointer focus:outline-none focus:ring-1 focus:ring-primary"
                 >
                   <option value="">-- Selecciona --</option>
-                  {merchants.map((m, idx) => (
-                    <option key={m.id} value={m.id}>
-                      {String(idx + 1).padStart(2, '0')}. {m.name}
-                    </option>
-                  ))}
+
+                  <optgroup label="🏪 Comercios">
+                    {merchants.map((m, idx) => (
+                      <option key={`m-${m.id}`} value={`merchant:${m.id}`}>
+                        {String(idx + 1).padStart(2, '0')}. {m.name}
+                      </option>
+                    ))}
+                  </optgroup>
+
+                  <optgroup label="🚴 Ryders">
+                    {riders.map((r) => (
+                      <option key={`r-${r.id}`} value={`rider:${r.id}`}>
+                        {r.name}
+                      </option>
+                    ))}
+                  </optgroup>
                 </select>
               </div>
             )}
@@ -176,13 +230,12 @@ export function PanelAccessModal({ open, onClose, onSuccess }: PanelAccessModalP
                 setPassword(e.target.value)
                 setError('')
               }}
-              disabled={!selectedId}
+              disabled={!selectedKey}
               autoFocus
               className="bg-gray-800/50 border-gray-700 text-white h-10 disabled:opacity-50"
             />
           </div>
 
-          {/* Error */}
           {error && (
             <div className="flex items-center gap-2 text-red-400 text-xs bg-red-500/10 border border-red-500/30 rounded-lg p-2">
               <AlertCircle className="h-3.5 w-3.5 flex-shrink-0" />
@@ -190,7 +243,6 @@ export function PanelAccessModal({ open, onClose, onSuccess }: PanelAccessModalP
             </div>
           )}
 
-          {/* Botones */}
           <div className="flex gap-2 pt-2">
             <Button
               type="button"
@@ -202,7 +254,7 @@ export function PanelAccessModal({ open, onClose, onSuccess }: PanelAccessModalP
             </Button>
             <Button
               type="submit"
-              disabled={!selectedId || !password}
+              disabled={!selectedKey || !password}
               className="flex-1 bg-primary text-primary-foreground h-9 disabled:opacity-50"
             >
               Acceder
@@ -218,7 +270,8 @@ export function PanelAccessModal({ open, onClose, onSuccess }: PanelAccessModalP
   )
 }
 
-// Helper: verificar si hay sesión válida
+// ==================== HELPERS ====================
+
 export function hasValidPanelSession(): boolean {
   if (typeof window === 'undefined') return false
   const stored = localStorage.getItem(SESSION_KEY)
@@ -231,7 +284,6 @@ export function hasValidPanelSession(): boolean {
   }
 }
 
-// Helper: obtener la sesión actual
 export function getPanelSession(): Session | null {
   if (typeof window === 'undefined') return null
   const stored = localStorage.getItem(SESSION_KEY)
@@ -245,7 +297,6 @@ export function getPanelSession(): Session | null {
   }
 }
 
-// Helper: cerrar sesión
 export function revokePanelSession() {
   if (typeof window === 'undefined') return
   localStorage.removeItem(SESSION_KEY)

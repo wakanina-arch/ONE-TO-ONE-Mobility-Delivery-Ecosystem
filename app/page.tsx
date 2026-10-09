@@ -308,13 +308,17 @@ const [showPanelAccess, setShowPanelAccess] = useState(false)
       )}
       {showPanelAccess && (
   <PanelAccessModal
-    open={showPanelAccess}
-    onClose={() => setShowPanelAccess(false)}
-    onSuccess={() => {
-      setShowPanelAccess(false)
-      window.location.href = '/comercio'
-    }}
-  />
+  open={showPanelAccess}
+  onClose={() => setShowPanelAccess(false)}
+  onSuccess={(type) => {
+  setShowPanelAccess(false)
+  if (type === 'merchant') {
+    window.location.href = '/comercio'
+  } else {
+    window.location.href = '/delivery'   // ← CAMBIO
+  }
+}}
+/>
 )}
 
       <style jsx>{`

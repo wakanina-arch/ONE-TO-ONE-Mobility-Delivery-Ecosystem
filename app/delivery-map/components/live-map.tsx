@@ -93,6 +93,7 @@ export default function LiveMap({ sectorId, activeOrder, showOnlyTask }: LiveMap
 
   return (
     <MapContainer
+      key="delivery-map-main"
       center={center}
       zoom={13}
       scrollWheelZoom={true}
