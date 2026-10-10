@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { SECTORS, type Sector } from '@/lib/delivery/sectors-data'
 import {
   getAllZonesWeatherWithRain,
+  type WeatherState,          // ← AÑADIR
   type WeatherStateWithRain,
   type WeatherZone,
 } from '@/lib/delivery/weather-service'
