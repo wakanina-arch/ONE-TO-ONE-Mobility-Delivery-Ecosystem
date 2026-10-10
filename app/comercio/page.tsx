@@ -42,14 +42,10 @@ useEffect(() => {
   const s = getPanelSession()
   if (s) {
     setSession({
-      merchantId: s.merchantId,
-      merchantName: s.merchantName,
+      merchantId: s.id,
+      merchantName: s.name,
     })
   }
-  const handleLogout = () => {
-  revokePanelSession()
-  router.push('/')
-}
 }, [router])
 
   // TODO: cargar el kanban_enabled del comercio actual desde Supabase
@@ -81,7 +77,7 @@ useEffect(() => {
           </div>
           <div className="flex items-center gap-2">
   <span className="text-xs text-muted-foreground">
-    {session?.merchantName || 'Cargando...'}
+        {session?.merchantName || 'Cargando...'}
   </span>
   <button
     onClick={handleLogout}

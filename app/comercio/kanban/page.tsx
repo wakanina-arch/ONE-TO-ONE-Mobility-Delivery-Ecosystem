@@ -262,8 +262,8 @@ function KanbanPanel() {
   const [orders, setOrders] = useState<Order[]>([])
   const [activeTab, setActiveTab] = useState<Tab>('recepcion')
   const [loading, setLoading] = useState(true)
-  const [merchantId] = useState<string | null>(
-    () => getPanelSession()?.merchantId ?? null
+      const [merchantId] = useState<string | null>(
+    () => getPanelSession()?.id ?? null
   )
 
   useEffect(() => {
