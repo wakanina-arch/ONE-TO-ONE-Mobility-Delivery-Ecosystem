@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo } from 'react'
 import { useCartStore, type MenuItem } from '@/lib/store'
+import { UserButton } from '@/components/UserButton'
 import {
   getMerchantById,
   getMerchantSchedules,
@@ -149,7 +150,7 @@ const categorias = useMemo(() => {
   return (
     <div className="min-h-screen bg-background">
       {/* HEADER (botones flotantes) */}
-      <div className="fixed top-0 left-0 right-0 z-50">
+                  <div className="fixed top-0 left-0 right-0 z-50">
         <div className="flex items-center justify-between px-3 py-2">
           <Button
             variant="ghost"
@@ -160,19 +161,23 @@ const categorias = useMemo(() => {
             <ArrowLeft className="h-4 w-4 text-white" />
           </Button>
 
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onOpenCart}
-            className="relative bg-black/20 backdrop-blur-sm rounded-full hover:bg-red-500/80 hover:text-white transition-all h-8 w-8"
-          >
-            <ShoppingCart className="h-4 w-4 text-white" />
-            {itemCount > 0 && (
-              <Badge className="absolute -top-1 -right-1 h-4 w-4 p-0 flex items-center justify-center text-[9px] bg-red-500 text-white">
-                {itemCount}
-              </Badge>
-            )}
-          </Button>
+          <div className="flex items-center gap-2">
+            <UserButton />
+
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onOpenCart}
+              className="relative bg-black/20 backdrop-blur-sm rounded-full hover:bg-red-500/80 hover:text-white transition-all h-8 w-8"
+            >
+              <ShoppingCart className="h-4 w-4 text-white" />
+              {itemCount > 0 && (
+                <Badge className="absolute -top-1 -right-1 h-4 w-4 p-0 flex items-center justify-center text-[9px] bg-red-500 text-white">
+                  {itemCount}
+                </Badge>
+              )}
+            </Button>
+          </div>
         </div>
       </div>
 

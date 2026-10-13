@@ -11,8 +11,10 @@ import { TicketView } from '@/components/ticket-view'
 import { Branding } from '@/components/branding'
 import { RegistroComercio } from '@/components/registro/RegistroComercio'
 import { OpcionesUnion } from '@/components/registro/OpcionesUnion'
-import { PanelAccessModal, hasValidPanelSession } from '@/components/PanelAccessModal'
-import { ChevronRight, Bike } from 'lucide-react'
+import { PanelAccessModal, hasValidPanelSession } 
+  from '@/components/PanelAccessModal'
+import { UserButton } from '@/components/UserButton'
+import { ChevronRight, Bike} from 'lucide-react'
 import {
   getActiveMerchants,
   getAllSchedulesForActiveMerchants,
@@ -175,6 +177,7 @@ const [showPanelAccess, setShowPanelAccess] = useState(false)
             />
           </div>
         </div>
+        <UserButton />
       </header>
 
       {/* MAIN */}

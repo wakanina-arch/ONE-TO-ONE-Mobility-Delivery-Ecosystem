@@ -1,10 +1,12 @@
 'use client'
 
 import Image from 'next/image'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useCartStore, COMERCIO_DEMO, type Order } from '@/lib/store'
+import { UserButton } from '@/components/UserButton'
 import { useOrderStore } from '@/lib/store/order-store'
 import { createOrder as createOrderSupabase, ensureUser } from '@/lib/supabase/orders'
+import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -39,6 +41,31 @@ export function CartView({ onBack, onOrderComplete }: CartViewProps) {
     direccion: '',
     notas: ''
   })
+    // Precargar datos del cliente desde su profile
+  useEffect(() => {
+    const cargarDatos = async () => {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('name, phone, email, delivery_address')
+        .eq('id', user.id)
+        .single()
+
+      if (profile) {
+        setForm((f) => ({
+          ...f,
+          nombre: profile.name || f.nombre,
+          telefono: profile.phone || f.telefono,
+          email: profile.email || f.email,
+          direccion: profile.delivery_address || f.direccion,
+        }))
+      }
+    }
+    cargarDatos()
+  }, [])
 
   const total = getTotal()
   const isEmpty = items.length === 0
@@ -61,6 +88,17 @@ export function CartView({ onBack, onOrderComplete }: CartViewProps) {
 
       // 2. Garantizar usuario (anónimo si es necesario)
       const customerId = await ensureUser()
+      // Guardar datos del cliente en su profile (si no están)
+const supabase = createClient()
+await supabase
+  .from('profiles')
+  .update({
+    name: form.nombre,
+    phone: form.telefono,
+    email: form.email || null,
+    delivery_address: form.direccion || null,
+  })
+  .eq('id', customerId)
 
       // 3. Calcular total con delivery si aplica
       const totalConDelivery = total + (form.tipoEntrega === 'domicilio' ? 1.50 : 0)
@@ -148,13 +186,23 @@ export function CartView({ onBack, onOrderComplete }: CartViewProps) {
     return (
       <div className="min-h-screen bg-background pb-24">
         <header className="sticky top-0 z-50 bg-card/80 backdrop-blur-xl border-b border-border">
-          <div className="flex items-center gap-3 px-3 py-2">
-            <Button variant="ghost" size="icon" onClick={() => setStep('cart')} className="h-8 w-8">
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-            <h1 className="text-base font-bold text-foreground">Finalizar Pedido</h1>
-          </div>
-        </header>
+  <div className="flex items-center justify-between px-3 py-2">
+    <div className="flex items-center gap-3">
+      <Button variant="ghost" size="icon" onClick={() => setStep('cart')} className="h-8 w-8">
+        <ArrowLeft className="h-4 w-4" />
+      </Button>
+      <h1 className="text-base font-bold text-foreground">Finalizar Pedido</h1>
+    </div>
+    <div className="flex items-center gap-1 mt-1">
+      <span className="text-[10px] text-teal-400">Rapi</span>
+      <span className="text-[10px] text-teal-400 inline-block animate-slide-right">»</span>
+      <span className="text-[10px] text-teal-400">Servi</span>
+      <span className="text-[10px] text-teal-400 inline-block animate-slide-right" style={{ animationDelay: '0.3s' }}>»</span>
+      <span className="text-[10px] text-teal-400">Delivery</span>
+      <Bike className="h-3 w-3 text-teal-400 ml-0.5 animate-slide-right" style={{ animationDelay: '0.6s' }} />
+    </div>
+  </div>
+</header>
 
         <form onSubmit={handleSubmit} className="p-3 space-y-4 pb-28">
           {/* Datos personales - versión compacta */}
@@ -449,7 +497,7 @@ export function CartView({ onBack, onOrderComplete }: CartViewProps) {
   // Vista del carrito
   return (
     <div className="min-h-screen bg-background pb-24">
-      <header className="sticky top-0 z-50 bg-card/80 backdrop-blur-xl border-b border-border">
+            <header className="sticky top-0 z-50 bg-card/80 backdrop-blur-xl border-b border-border">
         <div className="flex items-center justify-between px-3 py-2">
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="icon" onClick={onBack} className="h-8 w-8">
@@ -457,14 +505,17 @@ export function CartView({ onBack, onOrderComplete }: CartViewProps) {
             </Button>
             <h1 className="text-sm font-bold text-foreground">Mi Carrito</h1>
           </div>
-          <div className="flex items-center gap-1 mt-1">
-  <span className="text-[10px] text-teal-400">Rapi</span>
-  <span className="text-[10px] text-teal-400 inline-block animate-slide-right">»</span>
-  <span className="text-[10px] text-teal-400">Servi</span>
-  <span className="text-[10px] text-teal-400 inline-block animate-slide-right" style={{ animationDelay: '0.3s' }}>»</span>
-  <span className="text-[10px] text-teal-400">Delivery</span>
-  <Bike className="h-3 w-3 text-teal-400 ml-0.5 animate-slide-right" style={{ animationDelay: '0.6s' }} />
-</div>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1 mt-1">
+              <span className="text-[10px] text-teal-400">Rapi</span>
+              <span className="text-[10px] text-teal-400 inline-block animate-slide-right">»</span>
+              <span className="text-[10px] text-teal-400">Servi</span>
+              <span className="text-[10px] text-teal-400 inline-block animate-slide-right" style={{ animationDelay: '0.3s' }}>»</span>
+              <span className="text-[10px] text-teal-400">Delivery</span>
+              <Bike className="h-3 w-3 text-teal-400 ml-0.5 animate-slide-right" style={{ animationDelay: '0.6s' }} />
+            </div>
+            <UserButton />
+          </div>
         </div>
       </header>
 

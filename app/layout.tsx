@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Inter, Pacifico, Amaranth, Courgette } from "next/font/google";
 import { SocketProvider } from '@/lib/socket-context';
+import { UserPanelProvider } from '@/contexts/UserPanelContext'
+import { UserPanelModal } from '@/components/UserPanelModal'
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -38,7 +40,10 @@ export default function RootLayout({
     <html lang="es" className={`${pacifico.variable} ${amaranth.variable} ${courgette.variable}`}>
       <body className={inter.className}>
         <SocketProvider>
-          {children}
+          <UserPanelProvider>
+            {children}
+            <UserPanelModal />
+          </UserPanelProvider>
         </SocketProvider>
       </body>
     </html>
