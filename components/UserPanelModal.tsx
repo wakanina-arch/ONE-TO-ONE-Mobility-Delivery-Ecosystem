@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'
-import { X, User, Save, LogOut } from 'lucide-react'
+import { X, User, Save, ChevronRight, LogOut, Package } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useUserPanel } from '@/contexts/UserPanelContext'
 
@@ -72,14 +72,14 @@ export function UserPanelModal() {
       <Card className="bg-gray-900 border-primary/30 rounded-2xl max-w-sm w-full p-6 shadow-2xl">
         {/* Header */}
         <div className="flex justify-between items-center mb-4">
-          <div className="flex items-center gap-2">
-            <User className="h-5 w-5 text-primary" />
-            <h2 className="text-base font-bold text-white">Mi cuenta</h2>
-          </div>
-          <button onClick={close} className="text-gray-400 hover:text-white">
-            <X className="h-5 w-5" />
-          </button>
-        </div>
+  <div className="flex items-center gap-2">
+    <User className="h-5 w-5 text-primary" />
+    <h2 className="text-base font-bold text-white">Mi cuenta</h2>
+  </div>
+  <button onClick={close} className="text-gray-400 hover:text-white">
+    <X className="h-5 w-5" />
+  </button>
+</div>
 
         <p className="text-xs text-gray-400 mb-4">
           Tus datos se guardan para la próxima compra
@@ -132,24 +132,45 @@ export function UserPanelModal() {
 
         {/* Botones */}
         <div className="flex flex-col gap-2 mt-5">
-          <Button
-            onClick={handleSave}
-            disabled={saving}
-            className="w-full bg-emerald-500 hover:bg-emerald-400 text-white h-9"
-          >
-            <Save className="h-3.5 w-3.5 mr-1.5" />
-            {saved ? '✓ Guardado' : saving ? 'Guardando...' : 'Guardar cambios'}
-          </Button>
+  <Button
+    onClick={handleSave}
+    disabled={saving}
+    className="w-full bg-emerald-500 hover:bg-emerald-400 text-white h-9"
+  >
+    <Save className="h-3.5 w-3.5 mr-1.5" />
+    {saved ? '✓ Guardado' : saving ? 'Guardando...' : 'Guardar cambios'}
+  </Button>
 
-          <Button
-            onClick={handleLogout}
-            variant="ghost"
-            className="w-full text-red-400 hover:text-red-300 hover:bg-red-500/10 h-9"
-          >
-            <LogOut className="h-3.5 w-3.5 mr-1.5" />
-            Cerrar sesión
-          </Button>
-        </div>
+  {/* Separador */}
+  <div className="border-t border-gray-700 my-1" />
+
+  {/* Ver mis pedidos */}
+  <button
+    onClick={() => {
+      close()
+      window.location.href = '/mi-cuenta'
+    }}
+    className="w-full flex items-center justify-between p-2.5 rounded-lg hover:bg-white/5 transition-colors"
+  >
+    <div className="flex items-center gap-2">
+      <Package className="h-4 w-4 text-primary" />
+      <span className="text-sm text-foreground">Ver mis pedidos</span>
+    </div>
+    <ChevronRight className="h-4 w-4 text-muted-foreground" />
+  </button>
+
+  {/* Separador */}
+  <div className="border-t border-gray-700 my-1" />
+
+  <Button
+    onClick={handleLogout}
+    variant="ghost"
+    className="w-full text-red-400 hover:text-red-300 hover:bg-red-500/10 h-9"
+  >
+    <LogOut className="h-3.5 w-3.5 mr-1.5" />
+    Cerrar sesión
+  </Button>
+</div>
 
         <p className="text-[10px] text-gray-500 text-center mt-3">
           Cerrar sesión es opcional. Tus datos se mantienen.
