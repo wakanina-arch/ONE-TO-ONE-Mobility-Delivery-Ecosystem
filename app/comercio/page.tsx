@@ -32,7 +32,8 @@ function ComercioPanel() {
   const [showDocumentos, setShowDocumentos] = useState(false)
   const [kanbanEnabled, setKanbanEnabled] = useState(false)
   const router = useRouter()
-const [session, setSession] = useState<{ merchantId: string; merchantName: string } | null>(null)
+  const [session, setSession] = useState<{ merchantId: string; merchantName: string } | null>(null)
+  const [checking, setChecking] = useState(true)
 
 useEffect(() => {
   if (!hasValidPanelSession()) {
@@ -40,12 +41,17 @@ useEffect(() => {
     return
   }
   const s = getPanelSession()
+  if (s && s.type !== 'merchant') {
+    router.push('/delivery')
+    return
+  }
   if (s) {
     setSession({
       merchantId: s.id,
       merchantName: s.name,
     })
   }
+  setChecking(false)   // ← AÑADIR
 }, [router])
 
   // TODO: cargar el kanban_enabled del comercio actual desde Supabase
@@ -60,6 +66,13 @@ useEffect(() => {
     router.push('/')
   }
 
+  if (checking) {
+  return (
+    <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+    </div>
+  )
+}
   return (
     <div className="min-h-screen bg-background">
       {/* HEADER */}
@@ -275,15 +288,15 @@ useEffect(() => {
         </div>
       )}
 
-      {/* Documentación (ya funciona bien) */}
+            {/* Documentación (ya funciona bien) */}
       {showDocumentos && (
         <DocumentosModal
           open={showDocumentos}
           onClose={() => setShowDocumentos(false)}
         />
       )}
-        </div>
-  )
+  </div>
+    )
 }
 
 export default function ComercioPage() {

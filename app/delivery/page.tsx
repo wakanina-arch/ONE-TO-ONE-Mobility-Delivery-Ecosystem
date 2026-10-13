@@ -34,24 +34,24 @@ export default function DeliveryPanel() {
   const [jornadaActiva, setJornadaActiva] = useState(false)
 
   useEffect(() => {
-    if (!hasValidPanelSession()) {
-      router.push('/')
-      return
-    }
-    const s = getPanelSession()
-    if (s && s.type === 'rider') {
-      setSession({
-        id: s.id,
-        name: s.name,
-        avatar: s.avatar,
-      })
-      // Cargar estado de jornada desde localStorage
-      const saved = localStorage.getItem(`${JORNADA_KEY}_${s.id}`)
-      setJornadaActiva(saved === 'true')
-    } else {
-      router.push('/')
-    }
-  }, [router])
+  if (!hasValidPanelSession()) {
+    router.push('/')
+    return
+  }
+  const s = getPanelSession()
+  // 🔒 Si la sesión es de merchant → redirigir a su panel
+  if (s && s.type !== 'rider') {
+    router.push('/comercio')
+    return
+  }
+  if (s) {
+    setSession({
+      id: s.id,
+      name: s.name,
+      avatar: s.avatar,
+    })
+  }
+}, [router])
 
   const handleLogout = () => {
     revokePanelSession()
