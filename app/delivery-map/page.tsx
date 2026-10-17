@@ -1,9 +1,12 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import type { Order } from '@/lib/delivery/delivery-models'
+import { createClient } from '@/lib/supabase/client'
+import { getPanelSession } from '@/components/PanelAccessModal'
 import { MapPin, Settings, User, LogOut } from 'lucide-react'
 
 const DynamicMap = dynamic(() => import('./components/live-map'), {
@@ -87,28 +90,87 @@ export default function DeliveryMapPage() {
     return () => window.removeEventListener('nuevo-pedido-rider', handleNuevoPedido as EventListener)
   }, [])
 
+    // 🔵 Polling de pedidos reales en Supabase
   useEffect(() => {
-    if (!pendingOrder && !activeOrder) {
-      const timeoutId = window.setTimeout(() => {
+    // Solo buscar si no hay pedido activo ni pendiente
+    if (pendingOrder || activeOrder) return
+
+    const riderId = getPanelSession()?.id
+    if (!riderId) return
+
+    const supabase = createClient()
+    let isMounted = true
+
+    const buscarPedidos = async () => {
+      if (!isMounted) return
+
+      // 1. Obtener el sector del rider
+      const { data: riderData } = await supabase
+        .from('riders')
+        .select('zone')
+        .eq('id', riderId)
+        .single()
+
+      const riderZone = riderData?.zone
+      if (!riderZone) return
+
+      // 2. Buscar pedidos en 'preparing' del sector del rider
+      const { data: ordersData, error } = await supabase
+        .from('orders')
+        .select(`
+          id,
+          status,
+          total,
+          delivery_address,
+          delivery_lat,
+          delivery_lng,
+          created_at,
+          merchant_id,
+          merchants!inner ( name, sector, address )
+        `)
+        .eq('status', 'preparing')
+        .is('rider_id', null)
+        .eq('merchants.sector', riderZone)
+        .order('created_at', { ascending: true })
+        .limit(1)
+
+      if (error) {
+        console.error('Error buscando pedidos:', error)
+        return
+      }
+
+      if (ordersData && ordersData.length > 0) {
+        const o = ordersData[0] as any
+        const merchant = Array.isArray(o.merchants) ? o.merchants[0] : o.merchants
+
         setPendingOrder({
-          id: 'pedido-001',
-          restaurant: 'Panadería La Colmena',
-          customer: 'Cliente cerca de La Carolina',
+          id: o.id,
+          restaurant: merchant?.name || 'Comercio',
+          customer: o.delivery_address || 'Cliente',
           pickup: {
-            name: 'Panadería La Colmena',
-            lat: -0.2205,
-            lng: -78.513
+            name: merchant?.name || 'Comercio',
+            lat: -0.1807,   // TODO: coordenadas reales del comercio
+            lng: -78.4803,
           },
           dropoff: {
-            name: 'Destino del pedido',
-            lat: -0.2215,
-            lng: -78.5108
-          }
+            name: o.delivery_address || 'Cliente',
+            lat: o.delivery_lat || -0.18,
+            lng: o.delivery_lng || -78.48,
+          },
         })
-        setMessage('Tienes un pedido disponible. Acepta o rechaza.')
-      }, 9000)
+        setMessage(`🔔 Nuevo servicio de ${merchant?.name}`)
+      }
+    }
 
-      return () => window.clearTimeout(timeoutId)
+    // Primera búsqueda inmediata
+    buscarPedidos()
+
+    // Polling cada 10s
+    const interval = setInterval(buscarPedidos, 10000)
+
+    return () => {
+      isMounted = false
+      clearInterval(interval)
     }
   }, [pendingOrder, activeOrder])
 
@@ -136,23 +198,52 @@ export default function DeliveryMapPage() {
     }
   }
 
-    const handleAcceptOrder = () => {
+      const handleAcceptOrder = async () => {
     if (!pendingOrder) return
+
+    const riderId = getPanelSession()?.id
+    if (!riderId) return
+
+    // 1. Actualizar en Supabase
+    const supabase = createClient()
+    const { error } = await supabase
+      .from('orders')
+      .update({ status: 'picked_up', rider_id: riderId })
+      .eq('id', pendingOrder.id)
+
+    if (error) {
+      console.error('Error aceptando pedido:', error)
+      return
+    }
+
+    // 2. Actualizar estado local
     setActiveOrder(pendingOrder)
     setPendingOrder(null)
     setModoAceptar('fijo')
     setEstadoServicio(null)
-    setMessage('Pedido aceptado. Sigue la ruta de recogida y entrega.')
-
-    window.dispatchEvent(new CustomEvent('pedido-aceptado-rider', {
-      detail: { orderId: pendingOrder.id, riderId: 'rider-001' }
-    }))
+    const hasRouteCoordinates =
+      pendingOrder.pickup.lat !== null &&
+      pendingOrder.pickup.lng !== null &&
+      pendingOrder.dropoff.lat !== null &&
+      pendingOrder.dropoff.lng !== null
+    setMessage(
+      hasRouteCoordinates
+        ? 'Pedido aceptado. Sigue la ruta de recogida y entrega.'
+        : `Pedido aceptado. Destino: ${pendingOrder.customer}. No hay coordenadas GPS suficientes para mostrar la ruta.`
+    )
   }
 
   const handleRejectOrder = () => {
     setPendingOrder(null)
     setMostrarConfirmacionRechazo(false)
     setMessage('Pedido rechazado. Esperando el siguiente aviso.')
+  }
+
+  const handleSelectNoRiderOrder = (order: Order) => {
+    if (pendingOrder || activeOrder) return
+
+    setPendingOrder(order)
+    setMostrarConfirmacionRechazo(true)
   }
 
     const handleServicio = () => {
@@ -267,13 +358,57 @@ const terminarJornada = () => {
 
       <main className="relative bg-slate-950">
         <DynamicMap
-          sectorId={sectorId}
-          activeOrder={activeOrder}
-          showOnlyTask={Boolean(activeOrder)}
-        />
+  sectorId={sectorId}
+  activeOrder={activeOrder}
+  showOnlyTask={Boolean(activeOrder)}
+  onSelectMerchant={async (merchantId: string) => {
+    // Buscar el pedido pendiente de ese comercio
+    const supabase = createClient()
+    const { data: orderData } = await supabase
+      .from('orders')
+      .select(`
+        id,
+        status,
+        total,
+        delivery_address,
+        delivery_lat,
+        delivery_lng,
+        created_at,
+        merchant_id,
+        merchants!inner ( name, sector, address )
+      `)
+      .eq('merchant_id', merchantId)
+      .eq('status', 'preparing')
+      .is('rider_id', null)
+      .order('created_at', { ascending: true })
+      .limit(1)
+
+    if (orderData && orderData.length > 0) {
+      const o = orderData[0] as any
+      const merchant = Array.isArray(o.merchants) ? o.merchants[0] : o.merchants
+
+      setPendingOrder({
+        id: o.id,
+        restaurant: merchant?.name || 'Comercio',
+        customer: o.delivery_address || 'Cliente',
+        pickup: {
+          name: merchant?.name || 'Comercio',
+          lat: -0.1807,
+          lng: -78.4803,
+        },
+        dropoff: {
+          name: o.delivery_address || 'Cliente',
+          lat: o.delivery_lat || -0.18,
+          lng: o.delivery_lng || -78.48,
+        },
+      })
+      setMostrarConfirmacionRechazo(true)
+    }
+  }}
+/>
 
         <div className="absolute top-6 left-4 right-4 flex flex-col gap-3">
-          {pendingOrder && !activeOrder ? (
+          {pendingOrder && !activeOrder && !mostrarConfirmacionRechazo ? (
             <div className="rounded-3xl bg-slate-950/90 border border-slate-700 p-4 shadow-2xl">
               <p className="text-sm text-slate-200 font-semibold">Nuevo pedido disponible</p>
               <p className="text-xs text-slate-400 mt-1">{pendingOrder.restaurant} → {pendingOrder.customer}</p>
@@ -322,8 +457,11 @@ const terminarJornada = () => {
       </section>
 
       {/* Modal de decisión de servicio (aceptar o rechazar) */}
-{mostrarConfirmacionRechazo && (
-  <div className="fixed inset-0 bg-black/85 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+{mostrarConfirmacionRechazo && typeof document !== 'undefined' && createPortal(
+  <div
+    className="fixed inset-0 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4"
+    style={{ zIndex: 10000 }}
+  >
     <div className="bg-slate-900 p-6 rounded-2xl max-w-sm w-full text-center border border-slate-700 shadow-2xl">
       {/* Icono */}
       <div className="text-5xl mb-3">🛵</div>
@@ -380,7 +518,8 @@ const terminarJornada = () => {
         </button>
       </div>
     </div>
-  </div>
+  </div>,
+  document.body
 )}
 
       <style jsx>{`

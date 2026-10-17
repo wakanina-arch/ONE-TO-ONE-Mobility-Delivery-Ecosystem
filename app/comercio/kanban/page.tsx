@@ -56,7 +56,7 @@ const ESTADOS_CONFIG: Record<string, { label: string; color: string; tab: Tab }>
   accepted:   { label: 'Aceptado',     color: 'bg-blue-500',    tab: 'recepcion' },
   preparing:  { label: 'Preparando',   color: 'bg-orange-500',  tab: 'produccion' },
   ready:      { label: 'Listo',        color: 'bg-emerald-500', tab: 'entrega' },
-  picked_up:  { label: 'Recogido',     color: 'bg-teal-500',    tab: 'entrega' },
+picked_up:  { label: 'Para Recoger', color: 'bg-teal-500',    tab: 'entrega' },
   delivering: { label: 'En camino',    color: 'bg-purple-500',  tab: 'entrega' },
   delivered:  { label: 'Entregado',    color: 'bg-gray-500',    tab: 'historial' },
   cancelled:  { label: 'Cancelado',    color: 'bg-red-500',     tab: 'historial' },
@@ -176,32 +176,22 @@ function OrderCard({
         </Button>
 
         {activeTab === 'recepcion' && (
-          <>
-            {order.status === 'created' && (
-              <Button
-                onClick={() => onUpdateStatus(order.id, 'accepted')}
-                className="flex-1 h-7 text-[9px] bg-blue-500 hover:bg-blue-600 text-white"
-              >
-                <CheckCircle className="h-3 w-3 mr-1" /> Aceptar
-              </Button>
-            )}
-            {order.status === 'accepted' && (
-              <Button
-                onClick={() => onUpdateStatus(order.id, 'preparing')}
-                className="flex-1 h-7 text-[9px] bg-orange-500 hover:bg-orange-600 text-white"
-              >
-                <ChefHat className="h-3 w-3 mr-1" /> A cocina
-              </Button>
-            )}
-            <Button
-              variant="outline"
-              onClick={() => onUpdateStatus(order.id, 'cancelled')}
-              className="h-7 px-2 border-destructive text-destructive hover:bg-destructive/10"
-            >
-              <XCircle className="h-3 w-3" />
-            </Button>
-          </>
-        )}
+  <>
+    <Button
+      onClick={() => onUpdateStatus(order.id, 'preparing')}
+      className="flex-1 h-7 text-[9px] bg-orange-500 hover:bg-orange-600 text-white"
+    >
+      <ChefHat className="h-3 w-3 mr-1" /> Aceptar
+    </Button>
+    <Button
+      variant="outline"
+      onClick={() => onUpdateStatus(order.id, 'cancelled')}
+      className="h-7 px-2 border-destructive text-destructive hover:bg-destructive/10"
+    >
+      <XCircle className="h-3 w-3" />
+    </Button>
+  </>
+)}
 
         {activeTab === 'produccion' && (
           <Button
@@ -219,7 +209,7 @@ function OrderCard({
                 onClick={() => onUpdateStatus(order.id, 'picked_up')}
                 className="flex-1 h-7 text-[9px] bg-teal-500 hover:bg-teal-600 text-white"
               >
-                <Package className="h-3 w-3 mr-1" /> Recogido
+                <Package className="h-3 w-3 mr-1" /> Para Recoger
               </Button>
             )}
             {order.status === 'picked_up' && (
@@ -264,6 +254,9 @@ function KanbanPanel() {
   const [loading, setLoading] = useState(true)
       const [merchantId] = useState<string | null>(
     () => getPanelSession()?.id ?? null
+      )
+    const [merchantName] = useState<string | null>(
+    () => getPanelSession()?.name ?? null
   )
 
   useEffect(() => {
@@ -300,31 +293,73 @@ function KanbanPanel() {
   }, [merchantId])
 
   useEffect(() => {
-    if (merchantId) {
-      void Promise.resolve().then(cargarPedidos)
+    if (!merchantId) return
+
+    // Defer the initial state update until after the effect has completed.
+    const initialLoad = setTimeout(() => {
+      void cargarPedidos()
+    }, 0)
+
+    // Polling cada 10s
+    const interval = setInterval(() => {
+      void cargarPedidos()
+    }, 10000)
+
+    return () => {
+      clearTimeout(initialLoad)
+      clearInterval(interval)
     }
   }, [merchantId, cargarPedidos])
 
   const updateOrderStatus = async (orderId: string, newStatus: string) => {
-    if (!merchantId) return
+  const supabase = createClient()
 
-    const supabase = createClient()
+  console.log('🔍 updateOrderStatus llamado:')
+  console.log('  orderId:', orderId)
+  console.log('  newStatus:', newStatus)
 
-    const { error } = await supabase
-      .from('orders')
-      .update({ status: newStatus, updated_at: new Date().toISOString() })
-      .eq('id', orderId)
-      .eq('merchant_id', merchantId)
+  // Verificar sesión
+  const { data: { user } } = await supabase.auth.getUser()
+  console.log('  auth.uid():', user?.id)
+
+  // Verificar que el pedido tiene el merchant_id correcto
+  const { data: checkOrder } = await supabase
+    .from('orders')
+    .select('merchant_id')
+    .eq('id', orderId)
+    .single()
+  console.log('  order.merchant_id:', checkOrder?.merchant_id)
+
+  // Verificar que el comercio tiene user_id
+  const { data: checkMerchant } = await supabase
+    .from('merchants')
+    .select('id, user_id')
+    .eq('id', checkOrder?.merchant_id)
+    .single()
+  console.log('  merchant.user_id:', checkMerchant?.user_id)
+
+  // Hacer el update
+  const { data, error } = await supabase
+    .from('orders')
+    .update({ status: newStatus, updated_at: new Date().toISOString() })
+    .eq('id', orderId)
+    .select()
+    .single()
+
+  console.log('  update.data:', data)
+  console.log('  update.error:', error)
 
     if (error) {
-      console.error('Error actualizando pedido:', error)
-      return
-    }
-
-    setOrders(prev =>
-      prev.map(o => (o.id === orderId ? { ...o, status: newStatus } : o))
-    )
+    console.error('❌ Error actualizando pedido:')
+    console.error('  JSON:', JSON.stringify(error, null, 2))
+    console.error('  code:', error.code)
+    console.error('  message:', error.message)
+    console.error('  details:', error.details)
+    console.error('  hint:', error.hint)
+    return
   }
+  setOrders(prev => prev.map(o => (o.id === orderId ? { ...o, status: newStatus } : o)))
+}
 
   const pedidosPorTab = (tab: Tab) => {
     const estados = ESTADOS_POR_TAB[tab]
@@ -352,30 +387,24 @@ function KanbanPanel() {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-50 bg-card/80 backdrop-blur-xl border-b border-border">
-        <div className="flex items-center justify-between px-4 py-3">
-          <div className="flex items-center gap-2">
+            <header className="sticky top-0 z-50 bg-card/80 backdrop-blur-xl border-b border-border">
+        <div className="flex items-center justify-between px-4 py-3 gap-3">
+          <div className="flex items-center gap-2 min-w-0">
             <Link href="/comercio">
-              <Button variant="ghost" size="icon" className="h-8 w-8">
+              <Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0">
                 <ArrowLeft className="h-4 w-4" />
               </Button>
             </Link>
-            <span className="text-sm font-semibold text-foreground">
-              Cocina Kanban
+            <span className="text-sm font-semibold text-foreground truncate">
+              Panel de Cocina Kanban
             </span>
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => {
-              setLoading(true)
-              void cargarPedidos()
-            }}
-            className="h-8 w-8"
-            title="Recargar pedidos"
-          >
-            <Home className="h-4 w-4 rotate-180" />
-          </Button>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <span className="text-sm font-bold text-primary truncate max-w-[120px]">
+              {merchantName || 'Comercio'}
+            </span>
+            <Bell className="h-4 w-4 text-muted-foreground" />
+          </div>
         </div>
 
         <div className="flex border-t border-border">

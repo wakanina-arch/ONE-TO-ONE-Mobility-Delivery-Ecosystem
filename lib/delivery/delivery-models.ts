@@ -1,7 +1,7 @@
 export type DeliveryPoint = {
   name: string
-  lat: number
-  lng: number
+  lat: number | null
+  lng: number | null
 }
 
 export type Order = {

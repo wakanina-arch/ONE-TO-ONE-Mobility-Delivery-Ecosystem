@@ -1,17 +1,19 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { QRCodeSVG } from 'qrcode.react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { type Order, COMERCIO_DEMO } from '@/lib/store'
+import { createClient } from '@/lib/supabase/client'
 import {
   Share2,
-  Home,            // TODO: revisar si se reactiva el botón "Volver al inicio"
+  Home,
   MessageCircle,
   ShoppingBag,
   ClipboardList,
   ChefHat,
-  Bike,            // TODO: valorar cambiar a PackageCheck (Bike = en reparto, no "listo")
+  Bike,
   PartyPopper,
 } from 'lucide-react'
 import Link from 'next/link'
@@ -25,8 +27,8 @@ interface TicketViewProps {
 // --- Mapeo de estados para la barra (con iconos de Lucide-React) ---
 const STATUS_STEPS = [
   { key: 'Recibido', label: 'Recibido', icon: ClipboardList },
-  { key: 'Preparación', label: 'Preparación', icon: ChefHat },
-  { key: 'Listo', label: 'Listo', icon: Bike },
+  { key: 'Preparando', label: 'Preparando', icon: ChefHat },
+  { key: 'En camino', label: 'En camino', icon: Bike },
   { key: 'Entregado', label: 'Entregado', icon: PartyPopper },
 ]
 
@@ -37,19 +39,29 @@ const STATUS_STEPS = [
 const normalizeStatus = (status?: string): string => {
   if (!status) return 'Recibido'
   const map: Record<string, string> = {
+    // Estados viejos (Zustand)
     pendiente: 'Recibido',
     recibido: 'Recibido',
-    preparando: 'Preparación',
-    preparacion: 'Preparación',
-    listo: 'Listo',
+    preparando: 'Preparando',
+    preparacion: 'Preparando',
+    listo: 'En camino',
     entregado: 'Entregado',
+    // Estados nuevos (Supabase)
+    created: 'Recibido',
+    accepted: 'Recibido',
+    preparing: 'Preparando',
+    ready: 'En camino',
+    picked_up: 'En camino',
+    delivering: 'Preparando',
+    delivered: 'Entregado',
+    cancelled: 'Recibido',
   }
   return map[status.toLowerCase()] ?? 'Recibido'
 }
 
 // Frases inspiracionales (se mantienen)
 export function TicketView({ order, onBackHome }: TicketViewProps) {
-  // 🔧 FIX: fallback por si FRASES queda vacío (evita "undefined" en el render)
+  // 🔧 FIX: fallback por si FRASES queda vacío(evita "undefined" en el render)
   const frase =
     FRASES.length > 0
       ? FRASES[Math.floor(Math.random() * FRASES.length)]
@@ -57,8 +69,57 @@ export function TicketView({ order, onBackHome }: TicketViewProps) {
 
   const orderNumber = order.id.slice(-6).toUpperCase()
 
+  // 🔵 Estado real del pedido (sincronizado con Supabase)
+  const [realStatus, setRealStatus] = useState<string>(order.estado || 'created')
+    
+    // 🔵 Nombre del comercio
+  const [merchantName, setMerchantName] = useState<string>('')
+
+  // 🔵 Consultar el comercio
+  useEffect(() => {
+    const cargarComercio = async () => {
+      const supabase = createClient()
+      const { data } = await supabase
+        .from('merchants')
+        .select('name')
+        .eq('id', order.comercioId)
+        .single()
+
+      if (data?.name) setMerchantName(data.name)
+    }
+    cargarComercio()
+  }, [order.comercioId])
+
+  // 🔵 Polling cada 10s para traer el status real
+  useEffect(() => {
+    const supabase = createClient()
+    let isMounted = true
+
+    const cargarStatus = async () => {
+      const { data, error } = await supabase
+        .from('orders')
+        .select('status')
+        .eq('id', order.id)
+        .single()
+
+      if (!error && data && isMounted) {
+        setRealStatus(data.status)
+      }
+    }
+
+    cargarStatus()
+    const interval = setInterval(cargarStatus, 10000)
+
+    return () => {
+      isMounted = false
+      clearInterval(interval)
+    }
+  }, [order.id])
+
   // --- Lógica de la barra de progreso ---
-  const currentStatus = normalizeStatus(order.estado)
+  const currentStatus = normalizeStatus(realStatus)
+
+  // --- Lógica de la barra de progreso ---
   const currentStepIndex = Math.max(
     0,
     STATUS_STEPS.findIndex((step) => step.key === currentStatus),
@@ -147,33 +208,31 @@ export function TicketView({ order, onBackHome }: TicketViewProps) {
           <p className="text-[10px] text-muted-foreground">{fechaTexto}</p>
         </div>
 
-        {/* --- BARRA DE PROGRESO (Título enlace, iconos nuevos) --- */}
+                                {/* --- BARRA DE PROGRESO --- */}
         <div className="px-4 py-3 border-b border-border">
-          <div className="flex justify-between items-center mb-1">
-            <Link
-              href="/delivery-map"
-              className="text-sm font-semibold text-primary hover:text-primary/80 transition-colors"
-            >
-              Avance de pedido
-            </Link>
-            <span className="text-xs font-medium text-primary">
-              {/* 🔧 FIX: 'pendiente' ya se normaliza a 'Recibido' arriba,
-                  así que basta con chequear 'Recibido'.
-                  TODO: si quieres mostrar "Compilando" como texto propio,
-                  cambia el label por lo que realmente quieras ver. */}
-              {currentStatus === 'Recibido' ? 'Compilando' : currentStatus}
-            </span>
-          </div>
+          {/* Mensaje dinámico según el estado */}
+          <p className="text-sm text-center text-primary font-semibold mb-3">
+            {currentStatus === 'Recibido' &&
+              `${merchantName || 'El comercio'} ha recibido su pedido`}
+            {currentStatus === 'Preparando' &&
+              `${merchantName || 'El comercio'} ha aceptado su pedido`}
+            {currentStatus === 'En camino' && `Tiempo estimado de llegada: 30 minutos`}
+            {currentStatus === 'Entregado' && `¡Pedido entregado!`}
+          </p>
+
+          {/* Barra de progreso */}
           <div className="relative w-full bg-muted rounded-full h-1.5 mb-2">
             <div
               className="bg-primary h-1.5 rounded-full transition-all duration-500"
               style={{ width: `${progressPercent}%` }}
             ></div>
           </div>
+
+          {/* Iconos de los pasos */}
           <div className="flex justify-between text-[10px] text-muted-foreground">
             {STATUS_STEPS.map((step, idx) => {
               const Icon = step.icon
-              const active = idx <= currentStepIndex // 🔧 pequeña mejora: variable legible
+              const active = idx <= currentStepIndex
               return (
                 <div key={idx} className="flex flex-col items-center gap-0.5">
                   <Icon
