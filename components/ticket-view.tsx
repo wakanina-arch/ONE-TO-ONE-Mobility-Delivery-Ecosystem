@@ -32,31 +32,85 @@ const STATUS_STEPS = [
   { key: 'Entregado', label: 'Entregado', icon: PartyPopper },
 ]
 
-// 🔧 FIX: normaliza estados heredados (ej: 'pendiente') a las keys de STATUS_STEPS.
-// Antes, si order.estado era 'pendiente' u otro valor no listado, findIndex devolvía -1
-// y la barra de progreso quedaba en 0% con todos los iconos grises.
-// TODO: cuando confirmes los estados reales del store, ajusta este mapa o elimínalo.
-const normalizeStatus = (status?: string): string => {
-  if (!status) return 'Recibido'
-  const map: Record<string, string> = {
-    // Estados viejos (Zustand)
-    pendiente: 'Recibido',
-    recibido: 'Recibido',
-    preparando: 'Preparando',
-    preparacion: 'Preparando',
-    listo: 'En camino',
-    entregado: 'Entregado',
-    // Estados nuevos (Supabase)
-    created: 'Recibido',
-    accepted: 'Recibido',
-    preparing: 'Preparando',
-    ready: 'En camino',
-    picked_up: 'En camino',
-    delivering: 'Preparando',
-    delivered: 'Entregado',
-    cancelled: 'Recibido',
+const STATUS_STAGE: Record<string, string> = {
+  pendiente: 'Recibido',
+  recibido: 'Recibido',
+  created: 'Recibido',
+  accepted: 'Recibido',
+  preparando: 'Preparando',
+  preparacion: 'Preparando',
+  preparing: 'Preparando',
+  ready: 'Preparando',
+  picked_up: 'Preparando',
+  listo: 'Preparando',
+  delivering: 'En camino',
+  delivered: 'Entregado',
+  entregado: 'Entregado',
+  cancelled: 'Recibido',
+}
+
+const STATUS_PROGRESS: Record<string, number> = {
+  created: 12,
+  accepted: 25,
+  preparing: 42,
+  ready: 56,
+  picked_up: 68,
+  delivering: 84,
+  delivered: 100,
+  cancelled: 12,
+}
+
+const getStatusMessage = (status: string, merchantName: string) => {
+  const merchant = merchantName || 'El comercio'
+
+  switch (status.toLowerCase()) {
+    case 'created':
+      return `Enviamos tu pedido a ${merchant}. Estamos esperando que lo acepte.`
+    case 'accepted':
+      return `${merchant} aceptó tu pedido. Ahora comienza la preparación.`
+    case 'preparing':
+      return `${merchant} está preparando tu pedido.`
+    case 'ready':
+      return 'Tu pedido está listo para que el Ryder lo recoja.'
+    case 'picked_up':
+      return `${merchant} confirmó que tu pedido está listo para recoger.`
+    case 'delivering':
+      return 'El Ryder lleva tu pedido. Tiempo estimado inicial: 30–45 minutos.'
+    case 'delivered':
+      return 'El pedido se marcó como entregado. ¡Buen provecho!'
+    case 'cancelled':
+      return 'El pedido fue cancelado. Si necesitas ayuda, contacta al comercio.'
+    case 'pendiente':
+    case 'recibido':
+      return `Enviamos tu pedido a ${merchant}. Estamos esperando que lo acepte.`
+    case 'preparando':
+    case 'preparacion':
+      return `${merchant} está preparando tu pedido.`
+    case 'listo':
+      return 'Tu pedido está listo para que el Ryder lo recoja.'
+    case 'entregado':
+      return 'El pedido se marcó como entregado. ¡Buen provecho!'
+    default:
+      return `Estamos actualizando el estado de tu pedido con ${merchant}.`
   }
-  return map[status.toLowerCase()] ?? 'Recibido'
+}
+
+const getProgressPercent = (status: string) => {
+  const normalizedStatus = status.toLowerCase()
+  if (STATUS_PROGRESS[normalizedStatus] !== undefined) {
+    return STATUS_PROGRESS[normalizedStatus]
+  }
+
+  const legacyProgress: Record<string, number> = {
+    pendiente: 12,
+    recibido: 12,
+    preparando: 42,
+    preparacion: 42,
+    listo: 56,
+    entregado: 100,
+  }
+
+  return legacyProgress[normalizedStatus] ?? 12
 }
 
 // Frases inspiracionales (se mantienen)
@@ -117,15 +171,15 @@ export function TicketView({ order, onBackHome }: TicketViewProps) {
   }, [order.id])
 
   // --- Lógica de la barra de progreso ---
-  const currentStatus = normalizeStatus(realStatus)
+  const currentStatus = STATUS_STAGE[realStatus.toLowerCase()] || 'Recibido'
 
   // --- Lógica de la barra de progreso ---
   const currentStepIndex = Math.max(
     0,
     STATUS_STEPS.findIndex((step) => step.key === currentStatus),
   )
-  const progressPercent =
-    ((currentStepIndex + 1) / STATUS_STEPS.length) * 100
+  const progressPercent = getProgressPercent(realStatus)
+  const isCancelled = realStatus.toLowerCase() === 'cancelled'
 
   // 🔧 FIX: validar fecha para no mostrar "Invalid Date"
   // TODO: confirmar si fechaCreacion siempre viene como ISO string
@@ -211,24 +265,28 @@ export function TicketView({ order, onBackHome }: TicketViewProps) {
                                 {/* --- BARRA DE PROGRESO --- */}
         <div className="px-4 py-3 border-b border-border">
           {/* Mensaje dinámico según el estado */}
-          <p className="text-sm text-center text-primary font-semibold mb-3">
-            {currentStatus === 'Recibido' &&
-              `${merchantName || 'El comercio'} ha recibido su pedido`}
-            {currentStatus === 'Preparando' &&
-              `${merchantName || 'El comercio'} ha aceptado su pedido`}
-            {currentStatus === 'En camino' && `Tiempo estimado de llegada: 30 minutos`}
-            {currentStatus === 'Entregado' && `¡Pedido entregado!`}
+          <p className={`text-sm text-center font-semibold mb-3 ${
+            realStatus.toLowerCase() === 'cancelled' ? 'text-destructive' : 'text-primary'
+          }`}>
+            {getStatusMessage(realStatus, merchantName)}
           </p>
 
           {/* Barra de progreso */}
-          <div className="relative w-full bg-muted rounded-full h-1.5 mb-2">
             <div
-              className="bg-primary h-1.5 rounded-full transition-all duration-500"
-              style={{ width: `${progressPercent}%` }}
-            ></div>
-          </div>
+              className="relative w-full bg-muted rounded-full h-1.5 mb-2"
+              role="progressbar"
+              aria-label="Progreso del pedido"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={progressPercent}
+            >
+              <div
+                className={`${isCancelled ? 'bg-destructive' : 'bg-primary'} h-1.5 rounded-full transition-all duration-500`}
+                style={{ width: `${progressPercent}%` }}
+              ></div>
+            </div>
 
-          {/* Iconos de los pasos */}
+            {/* Iconos de los pasos */}
           <div className="flex justify-between text-[10px] text-muted-foreground">
             {STATUS_STEPS.map((step, idx) => {
               const Icon = step.icon
@@ -251,6 +309,9 @@ export function TicketView({ order, onBackHome }: TicketViewProps) {
               )
             })}
           </div>
+          <p className="mt-2 text-center text-[10px] text-muted-foreground">
+            El estado se actualiza automáticamente cada 10 segundos.
+          </p>
         </div>
 
         {/* --- RESUMEN DE ITEMS (Compacto y legible) --- */}

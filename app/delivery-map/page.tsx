@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
+import { QRCodeSVG } from 'qrcode.react'
 import type { Order } from '@/lib/delivery/delivery-models'
 import { createClient } from '@/lib/supabase/client'
 import { getPanelSession } from '@/components/PanelAccessModal'
@@ -24,12 +25,15 @@ export default function DeliveryMapPage() {
   const router = useRouter()
   const [sectorName, setSectorName] = useState('')
   const [sectorId, setSectorId] = useState('1')
-  const [pendingOrder, setPendingOrder] = useState<Order | null>(null)
+    const [pendingOrder, setPendingOrder] = useState<Order | null>(null)
+  const [pendingOrderSource, setPendingOrderSource] = useState<'auto' | 'rescue'>('auto')
   const [activeOrder, setActiveOrder] = useState<Order | null>(null)
   const [estadoServicio, setEstadoServicio] = useState<'recogido' | null>(null)
   const [message, setMessage] = useState(initialMessage)
   const [modoAceptar, setModoAceptar] = useState<'parpadeo' | 'fijo'>('parpadeo')
   const [mostrarConfirmacionRechazo, setMostrarConfirmacionRechazo] = useState(false)
+  const [aceptandoPedido, setAceptandoPedido] = useState(false)
+  const [errorAceptacion, setErrorAceptacion] = useState<string | null>(null)
 
   useEffect(() => {
     const savedSectorId = localStorage.getItem('rider-sector-id')
@@ -43,11 +47,11 @@ export default function DeliveryMapPage() {
     }
   }, [])
 
-  useEffect(() => {
-    if (pendingOrder && !activeOrder) {
+    useEffect(() => {
+    if (pendingOrder && !activeOrder && pendingOrderSource === 'auto') {
       setMessage(`¡Nuevo pedido! ${pendingOrder.restaurant} → ${pendingOrder.customer}`)
     }
-  }, [pendingOrder, activeOrder])
+  }, [pendingOrder, activeOrder, pendingOrderSource])
 
   useEffect(() => {
     const handleNuevoPedido = (event: Event) => {
@@ -83,6 +87,7 @@ export default function DeliveryMapPage() {
           lng: sharedOrder.clienteLng
         }
       })
+      setPendingOrderSource('auto')
       setMessage(`Nuevo pedido entrante: ${sharedOrder.comercioName} → ${sharedOrder.clienteName}`)
     }
 
@@ -95,7 +100,8 @@ export default function DeliveryMapPage() {
     // Solo buscar si no hay pedido activo ni pendiente
     if (pendingOrder || activeOrder) return
 
-    const riderId = getPanelSession()?.id
+        const sessionForRider = getPanelSession()
+    const riderId = sessionForRider?.type === 'rider' ? sessionForRider.id : null
     if (!riderId) return
 
     const supabase = createClient()
@@ -198,50 +204,90 @@ export default function DeliveryMapPage() {
     }
   }
 
-      const handleAcceptOrder = async () => {
-    if (!pendingOrder) return
+        const handleAcceptOrder = async () => {
+          if (!pendingOrder || aceptandoPedido) return
 
-    const riderId = getPanelSession()?.id
-    if (!riderId) return
-
-    // 1. Actualizar en Supabase
-    const supabase = createClient()
-    const { error } = await supabase
-      .from('orders')
-      .update({ status: 'picked_up', rider_id: riderId })
-      .eq('id', pendingOrder.id)
-
-    if (error) {
-      console.error('Error aceptando pedido:', error)
+    const session = getPanelSession()
+    if (!session || session.type !== 'rider') {
+            setErrorAceptacion('Debes iniciar sesión como Ryder para aceptar este pedido.')
       return
     }
+    const riderId = session.id
 
-    // 2. Actualizar estado local
-    setActiveOrder(pendingOrder)
-    setPendingOrder(null)
-    setModoAceptar('fijo')
-    setEstadoServicio(null)
-    const hasRouteCoordinates =
-      pendingOrder.pickup.lat !== null &&
-      pendingOrder.pickup.lng !== null &&
-      pendingOrder.dropoff.lat !== null &&
-      pendingOrder.dropoff.lng !== null
-    setMessage(
-      hasRouteCoordinates
-        ? 'Pedido aceptado. Sigue la ruta de recogida y entrega.'
-        : `Pedido aceptado. Destino: ${pendingOrder.customer}. No hay coordenadas GPS suficientes para mostrar la ruta.`
-    )
-  }
+          setAceptandoPedido(true)
+          setErrorAceptacion(null)
 
-  const handleRejectOrder = () => {
-    setPendingOrder(null)
-    setMostrarConfirmacionRechazo(false)
-    setMessage('Pedido rechazado. Esperando el siguiente aviso.')
-  }
+          const supabase = createClient()
+          try {
+            // La condición rider_id IS NULL hace la asignación atómica si dos Ryders aceptan a la vez.
+            const { count: assignedCount, error } = await supabase
+              .from('orders')
+              .update({ rider_id: riderId }, { count: 'exact' })
+              .eq('id', pendingOrder.id)
+              .is('rider_id', null)
 
-  const handleSelectNoRiderOrder = (order: Order) => {
+            if (error) {
+              console.error('Error aceptando pedido:', error.message)
+              setErrorAceptacion('No se pudo asignar el pedido. Inténtalo de nuevo.')
+              return
+            }
+
+            if (assignedCount !== 1) {
+              const { data: ownAssignment, error: verificationError } = await supabase
+                .from('orders')
+                .select('id')
+                .eq('id', pendingOrder.id)
+                .eq('rider_id', riderId)
+                .maybeSingle()
+
+              if (verificationError) {
+                console.error('Error verificando asignación del pedido:', verificationError.message)
+                setErrorAceptacion('No se pudo confirmar la asignación. El pedido sigue en esta pantalla.')
+                return
+              }
+
+              if (!ownAssignment) {
+                setErrorAceptacion('Este pedido ya fue tomado por otro Ryder o ya no está disponible.')
+                return
+              }
+            }
+
+            setActiveOrder(pendingOrder)
+            setPendingOrder(null)
+            setPendingOrderSource('auto')
+            setMostrarConfirmacionRechazo(false)
+            setModoAceptar('fijo')
+            setEstadoServicio(null)
+            const hasRouteCoordinates =
+              pendingOrder.pickup.lat !== null &&
+              pendingOrder.pickup.lng !== null &&
+              pendingOrder.dropoff.lat !== null &&
+              pendingOrder.dropoff.lng !== null
+            setMessage(
+              hasRouteCoordinates
+                ? 'Pedido aceptado. Dirígete al comercio y muestra el QR para retirar el pedido.'
+                : `Pedido aceptado. Destino: ${pendingOrder.customer}. No hay coordenadas GPS suficientes para mostrar la ruta.`
+            )
+          } catch (error) {
+            console.error('Error inesperado aceptando pedido:', error)
+            setErrorAceptacion('Ocurrió un error inesperado. Inténtalo de nuevo.')
+          } finally {
+            setAceptandoPedido(false)
+          }
+        }
+
+        const handleRejectOrder = () => {
+          if (aceptandoPedido) return
+          setPendingOrder(null)
+          setMostrarConfirmacionRechazo(false)
+          setErrorAceptacion(null)
+          setMessage('Pedido rechazado. Esperando el siguiente aviso.')
+        }
+
+    const handleSelectNoRiderOrder = (order: Order) => {
     if (pendingOrder || activeOrder) return
 
+    setPendingOrderSource('rescue')
     setPendingOrder(order)
     setMostrarConfirmacionRechazo(true)
   }
@@ -439,6 +485,27 @@ const terminarJornada = () => {
         <div className="flex flex-col gap-2">
           <p className="text-sm text-white/90">{bottomText}</p>
           <p className="text-xs text-slate-500">{message}</p>
+          {activeOrder && (
+            <div className="mt-2 flex items-center gap-4 rounded-2xl border border-slate-700 bg-slate-950/80 p-3">
+              <div className="shrink-0 rounded-lg bg-white p-2">
+                <QRCodeSVG
+                  value={activeOrder.id}
+                  size={112}
+                  level="M"
+                  title={`QR del pedido ${activeOrder.id.slice(-6).toUpperCase()}`}
+                />
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-bold text-white">QR para retirar el pedido</p>
+                <p className="mt-1 text-xs text-slate-300">
+                  Muéstralo en {activeOrder.restaurant} al recoger.
+                </p>
+                <p className="mt-2 text-xs font-semibold tracking-wider text-emerald-400">
+                  Pedido #{activeOrder.id.slice(-6).toUpperCase()}
+                </p>
+              </div>
+            </div>
+          )}
                     {activeOrder ? (
             <button
               onClick={handleServicio}
@@ -499,20 +566,25 @@ const terminarJornada = () => {
         </div>
       )}
 
+      {errorAceptacion && (
+        <p role="alert" className="mt-3 text-sm font-medium text-red-300">
+          {errorAceptacion}
+        </p>
+      )}
+
             {/* Botones */}
       <div className="flex gap-3 mt-4">
         <button
-          onClick={() => {
-            setMostrarConfirmacionRechazo(false)
-            handleAcceptOrder()
-          }}
-          className="flex-1 bg-emerald-500 hover:bg-emerald-400 text-white py-3 rounded-xl font-bold transition shadow-lg shadow-emerald-500/40"
+          onClick={() => void handleAcceptOrder()}
+          disabled={aceptandoPedido}
+          className="flex-1 bg-emerald-500 hover:bg-emerald-400 disabled:cursor-wait disabled:opacity-60 text-white py-3 rounded-xl font-bold transition shadow-lg shadow-emerald-500/40"
         >
-          ✓ Aceptar
+          {aceptandoPedido ? 'Asignando...' : '✓ Aceptar'}
         </button>
         <button
           onClick={handleRejectOrder}
-          className="flex-1 bg-red-600 hover:bg-red-500 text-white py-3 rounded-xl font-bold transition shadow-lg shadow-red-500/30"
+          disabled={aceptandoPedido}
+          className="flex-1 bg-red-600 hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-60 text-white py-3 rounded-xl font-bold transition shadow-lg shadow-red-500/30"
         >
           ✕ Rechazar
         </button>

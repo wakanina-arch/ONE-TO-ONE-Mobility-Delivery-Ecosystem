@@ -252,16 +252,22 @@ function KanbanPanel() {
   const [orders, setOrders] = useState<Order[]>([])
   const [activeTab, setActiveTab] = useState<Tab>('recepcion')
   const [loading, setLoading] = useState(true)
-      const [merchantId] = useState<string | null>(
-    () => getPanelSession()?.id ?? null
-      )
-    const [merchantName] = useState<string | null>(
-    () => getPanelSession()?.name ?? null
-  )
+        const [merchantId, setMerchantId] = useState<string | null>(null)
+  const [merchantName, setMerchantName] = useState<string | null>(null)
+  const [sessionReady, setSessionReady] = useState(false)
 
+  // 1. Cargar sesión post-montaje (evita hydration mismatch de localStorage en SSR)
   useEffect(() => {
-    if (!hasValidPanelSession() || !merchantId) router.push('/')
-  }, [router, merchantId])
+    const session = getPanelSession()
+    setMerchantId(session?.id ?? null)
+    setMerchantName(session?.name ?? null)
+    setSessionReady(true)
+  }, [])
+
+  // 2. Redirect solo cuando la sesión ya se resolvió en cliente
+  useEffect(() => {
+    if (sessionReady && !hasValidPanelSession()) router.push('/')
+  }, [router, sessionReady])
 
   const cargarPedidos = useCallback(async () => {
     if (!merchantId) return
