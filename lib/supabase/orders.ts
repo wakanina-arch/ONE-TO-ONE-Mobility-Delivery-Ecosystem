@@ -14,6 +14,9 @@ export interface CreateOrderInput {
   delivery_address?: string
   payment_method?: string
   notes?: string
+  tip_amount?: number
+  app_fee?: number
+  recycling_discount?: number
 }
 
 // Crear un nuevo pedido
@@ -23,14 +26,17 @@ export async function createOrder(orderData: CreateOrderInput) {
   // 1. Insertar el pedido principal
   const { data: order, error: orderError } = await supabase
     .from('orders')
-    .insert({
+        .insert({
       customer_id: orderData.customer_id,
       merchant_id: orderData.merchant_id,
       total: orderData.total,
       delivery_address: orderData.delivery_address,
       payment_method: orderData.payment_method,
       notes: orderData.notes,
-      status: 'created'
+      status: 'created',
+      tip_amount: orderData.tip_amount ?? 0,
+      app_fee: orderData.app_fee ?? 0,
+      recycling_discount: orderData.recycling_discount ?? 0
     })
     .select()
     .single()

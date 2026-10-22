@@ -331,6 +331,46 @@ export function TicketView({ order, onBackHome }: TicketViewProps) {
               </div>
             ))}
           </div>
+                    {(() => {
+            const subtotal = order.pricingBreakdown?.subtotal
+              ?? (order.total - (order.tip_amount ?? 0) - (order.app_fee ?? 0) + (order.recycling_discount ?? 0))
+            const ryderFee = order.pricingBreakdown?.ryderFee
+              ?? (order.total - subtotal - (order.tip_amount ?? 0) - (order.app_fee ?? 0) + (order.recycling_discount ?? 0))
+            const tipAmount = order.pricingBreakdown?.tipAmount ?? order.tip_amount ?? 0
+            const tipPercent = order.pricingBreakdown?.tipPercent ?? 0
+            const appFee = order.pricingBreakdown?.appFee ?? order.app_fee ?? 0
+            const recyclingDiscount = order.pricingBreakdown?.recyclingDiscount ?? order.recycling_discount ?? 0
+            const hasBreakdown = subtotal > 0 || tipAmount > 0 || appFee > 0 || recyclingDiscount > 0
+            if (!hasBreakdown) return null
+            return (
+              <div className="space-y-1 mt-3 pt-2 border-t border-border text-[11px]">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Subtotal</span>
+                  <span>${subtotal.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Coste del servicio de entrega</span>
+                  <span>${ryderFee.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">
+                    Propina para el Ryder ({tipPercent}%)
+                  </span>
+                  <span>${tipAmount.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Tarifa de servicio</span>
+                  <span>${appFee.toFixed(2)}</span>
+                </div>
+                {recyclingDiscount > 0 && (
+                  <div className="flex justify-between text-emerald-600">
+                    <span>Descuento por reciclaje</span>
+                    <span>−${recyclingDiscount.toFixed(2)}</span>
+                  </div>
+                )}
+              </div>
+            )
+          })()}
           <div className="flex justify-between items-center mt-2 pt-2 border-t border-border">
             <span className="font-bold text-foreground text-sm">Total</span>
             <span className="text-base font-bold text-primary">

@@ -41,6 +41,8 @@ export function CartView({ onBack, onOrderComplete }: CartViewProps) {
     direccion: '',
     notas: ''
   })
+  const [tipPercent, setTipPercent] = useState<0 | 10 | 15 | 20>(0)
+  const [recyclingApplied, setRecyclingApplied] = useState(false)
     // Precargar datos del cliente desde su profile
   useEffect(() => {
     const cargarDatos = async () => {
@@ -69,6 +71,16 @@ export function CartView({ onBack, onOrderComplete }: CartViewProps) {
 
   const total = getTotal()
   const isEmpty = items.length === 0
+  const subtotal = total
+  const ryderFee = form.tipoEntrega === 'domicilio' ? 1.5 : 0
+  const tipAmount = form.tipoEntrega === 'domicilio'
+    ? Math.round((subtotal * tipPercent) / 100 * 100) / 100
+    : 0
+  const appFee = 2
+  const recyclingDiscount = recyclingApplied ? 1.01 : 0
+  const totalFinal = Math.round(
+    (subtotal + ryderFee + tipAmount + appFee - recyclingDiscount) * 100
+  ) / 100
 
     const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -100,11 +112,8 @@ await supabase
   })
   .eq('id', customerId)
 
-      // 3. Calcular total con delivery si aplica
-      const totalConDelivery = total + (form.tipoEntrega === 'domicilio' ? 1.50 : 0)
-
-      // 4. Crear pedido en Supabase
-      const orderCreado = await createOrderSupabase({
+      // 3. Crear pedido en Supabase
+            const orderCreado = await createOrderSupabase({
         customer_id: customerId,
         merchant_id: comercio.id,
         items: items.map(item => ({
@@ -112,13 +121,16 @@ await supabase
           quantity: item.cantidad,
           price: item.precio
         })),
-        total: totalConDelivery,
+        total: totalFinal,
         delivery_address: form.tipoEntrega === 'domicilio' ? form.direccion : undefined,
         payment_method: form.metodoPago,
-        notes: form.notas
+        notes: form.notas,
+        tip_amount: tipAmount,
+        app_fee: appFee,
+        recycling_discount: recyclingDiscount
       })
 
-      // 5. Construir el Order viejo para el ticket
+      // 4. Construir el Order para el ticket
       const newOrder: Order = {
         id: orderCreado.id,
         cliente: {
@@ -130,7 +142,15 @@ await supabase
           ...item,
           notas: form.notas
         })),
-        total: totalConDelivery,
+        total: totalFinal,
+        pricingBreakdown: {
+          subtotal,
+          ryderFee,
+          tipPercent: form.tipoEntrega === 'domicilio' ? tipPercent : 0,
+          tipAmount,
+          appFee,
+          recyclingDiscount,
+        },
         estado: 'pendiente',
         metodoPago: form.metodoPago,
         tipoEntrega: form.tipoEntrega,
@@ -141,7 +161,7 @@ await supabase
         comercioId: comercio.id
       }
 
-      // 6. También guardar en el store viejo (por si el ticket lo usa)
+      // 5. También guardar en el store de pedidos
       createOrder({
         comercioId: comercio.id,
         comercioName: comercio.nombre,
@@ -154,10 +174,10 @@ await supabase
           quantity: item.cantidad,
           price: item.precio
         })),
-        total: totalConDelivery
+        total: totalFinal
       })
 
-      // 7. Limpiar y redirigir al ticket
+      // 6. Limpiar y redirigir al ticket
       clearCart()
       onOrderComplete(newOrder)
 
@@ -269,7 +289,7 @@ await supabase
   </RadioGroup>
   
   {form.tipoEntrega === 'domicilio' && (
-    <div className="mt-1.5 pt-1.5 border-t border-border">
+    <div className="mt-1.5 pt-1.5 border-t border-border space-y-2">
       <Input
         placeholder="Dirección de entrega"
         value={form.direccion}
@@ -277,6 +297,30 @@ await supabase
         required
         className="h-7 text-xs px-2 bg-input border-border"
       />
+      <div>
+        <p className="text-[10px] text-muted-foreground">
+          Coste del servicio de entrega: <span className="font-semibold text-foreground">${ryderFee.toFixed(2)}</span>
+        </p>
+        <p className="mt-2 text-[10px] font-medium text-foreground">Propina para el Ryder</p>
+        <div className="grid grid-cols-4 gap-1.5 mt-1.5" role="group" aria-label="Seleccionar propina para el Ryder">
+          {([0, 10, 15, 20] as const).map((percent) => (
+            <Button
+              key={percent}
+              type="button"
+              size="sm"
+              variant={tipPercent === percent ? 'default' : 'outline'}
+              aria-pressed={tipPercent === percent}
+              onClick={() => setTipPercent(percent)}
+              className="h-7 text-[10px]"
+            >
+              {percent === 0 ? 'Sin propina' : `${percent}%`}
+            </Button>
+          ))}
+        </div>
+        <p className="mt-1 text-right text-[10px] text-muted-foreground">
+          Propina seleccionada: <span className="font-semibold text-foreground">${tipAmount.toFixed(2)}</span>
+        </p>
+      </div>
     </div>
   )}
 </Card>
@@ -459,22 +503,53 @@ await supabase
             />
           </Card>
 
+          <Card className="p-3 bg-card border-border">
+            <label className="flex items-start gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={recyclingApplied}
+                onChange={(event) => setRecyclingApplied(event.target.checked)}
+                className="mt-0.5 accent-primary"
+              />
+              <span>
+                <span className="block text-xs font-medium text-foreground">
+                  Aplicar descuento por reciclaje
+                </span>
+                <span className="block text-[10px] text-muted-foreground">
+                  Descuento de $1.01 en este pedido.
+                </span>
+              </span>
+            </label>
+          </Card>
+
           {/* Resumen */}
           <Card className="p-3 bg-card border-border">
             <div className="flex justify-between text-xs mb-2">
-              <span className="text-muted-foreground">Subtotal ({items.length} items)</span>
-              <span>${total.toFixed(2)}</span>
+              <span className="text-muted-foreground">Subtotal ({items.length} productos)</span>
+              <span>${subtotal.toFixed(2)}</span>
             </div>
-            {form.tipoEntrega === 'domicilio' && (
-              <div className="flex justify-between text-xs mb-2">
-                <span className="text-muted-foreground">Delivery</span>
-                <span>$1.50</span>
+            <div className="flex justify-between text-xs mb-2">
+              <span className="text-muted-foreground">Coste del servicio de entrega</span>
+              <span>${ryderFee.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between text-xs mb-2">
+              <span className="text-muted-foreground">Propina ({form.tipoEntrega === 'domicilio' ? tipPercent : 0}%)</span>
+              <span>${tipAmount.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between text-xs mb-2">
+              <span className="text-muted-foreground">Tarifa de servicio</span>
+              <span>${appFee.toFixed(2)}</span>
+            </div>
+            {recyclingApplied && (
+              <div className="flex justify-between text-xs mb-2 text-emerald-600">
+                <span>Descuento por reciclaje</span>
+                <span>−${recyclingDiscount.toFixed(2)}</span>
               </div>
             )}
             <div className="flex justify-between pt-2 border-t border-border">
               <span className="font-semibold text-sm">Total</span>
               <span className="text-sm font-bold text-primary">
-                ${(total + (form.tipoEntrega === 'domicilio' ? 1.50 : 0)).toFixed(2)}
+                ${totalFinal.toFixed(2)}
               </span>
             </div>
           </Card>
@@ -487,7 +562,7 @@ await supabase
             disabled={!form.nombre || !form.telefono}
             className="w-full h-9 bg-primary text-primary-foreground rounded-xl text-sm"
           >
-            Confirmar Pedido - ${(total + (form.tipoEntrega === 'domicilio' ? 1.50 : 0)).toFixed(2)}
+            Confirmar Pedido - ${totalFinal.toFixed(2)}
           </Button>
         </div>
       </div>

@@ -30,6 +30,17 @@ export interface Order {
   }
   items: CartItem[]
   total: number
+    pricingBreakdown?: {
+    subtotal: number
+    ryderFee: number
+    tipPercent: 0 | 10 | 15 | 20
+    tipAmount: number
+    appFee: number
+    recyclingDiscount: number
+  }
+  tip_amount?: number
+  app_fee?: number
+  recycling_discount?: number
   estado: 'pendiente' | 'preparacion' | 'listo' | 'entregado' | 'cancelado'
   metodoPago: 'efectivo' | 'transferencia' | 'payphone' | 'tarjeta' | 'deuna'
   tipoEntrega: 'local' | 'domicilio'
