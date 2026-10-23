@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useCartStore, type MenuItem } from '@/lib/store'
+import { useUserPanel } from '@/contexts/UserPanelContext'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft, Package, Clock } from 'lucide-react'
@@ -23,6 +24,7 @@ export default function MiCuentaPage() {
   const [loading, setLoading] = useState(true)
   const [customerId, setCustomerId] = useState<string | null>(null)
   const { clearCart, addItem } = useCartStore()
+  const { open } = useUserPanel()
 
   useEffect(() => {
     const load = async () => {
@@ -93,9 +95,7 @@ export default function MiCuentaPage() {
           variant="ghost"
           size="icon"
           onClick={() => {
-            if (typeof window !== 'undefined') {
-              sessionStorage.setItem('openUserPanel', 'true')
-            }
+            open()
             router.push('/')
           }}
         >

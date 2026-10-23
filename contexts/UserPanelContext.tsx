@@ -1,7 +1,6 @@
 'use client'
 
-import { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from 'react'
-import { usePathname } from 'next/navigation'
+import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react'
 import { createClient } from '@/lib/supabase/client'
 
 export interface UserProfile {
@@ -24,11 +23,9 @@ interface UserPanelContextValue {
 const UserPanelContext = createContext<UserPanelContextValue | null>(null)
 
 export function UserPanelProvider({ children }: { children: ReactNode }) {
-  const pathname = usePathname()
   const [isOpen, setIsOpen] = useState(false)
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
-  const didCheckOpenPanel = useRef(false)
 
   const reload = useCallback(async () => {
     setLoading(true)
@@ -53,20 +50,6 @@ export function UserPanelProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     reload()
   }, [reload])
-
-  useEffect(() => {
-    if (pathname !== '/') {
-      didCheckOpenPanel.current = false
-      return
-    }
-    if (didCheckOpenPanel.current) return
-    didCheckOpenPanel.current = true
-
-    if (sessionStorage.getItem('openUserPanel') === 'true') {
-      sessionStorage.removeItem('openUserPanel')
-      setIsOpen(true)
-    }
-  }, [pathname])
 
   return (
     <UserPanelContext.Provider
