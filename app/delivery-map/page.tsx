@@ -100,8 +100,8 @@ export default function DeliveryMapPage() {
     // Solo buscar si no hay pedido activo ni pendiente
     if (pendingOrder || activeOrder) return
 
-        const sessionForRider = getPanelSession()
-    const riderId = sessionForRider?.type === 'rider' ? sessionForRider.id : null
+        const sessionForRider = getPanelSession('rider')
+    const riderId = sessionForRider?.id ?? null
     if (!riderId) return
 
     const supabase = createClient()
@@ -207,9 +207,9 @@ export default function DeliveryMapPage() {
         const handleAcceptOrder = async () => {
           if (!pendingOrder || aceptandoPedido) return
 
-    const session = getPanelSession()
-    if (!session || session.type !== 'rider') {
-            setErrorAceptacion('Debes iniciar sesión como Ryder para aceptar este pedido.')
+        const session = getPanelSession('rider')
+    if (!session) {
+      setErrorAceptacion('Debes iniciar sesión como Ryder para aceptar este pedido.')
       return
     }
     const riderId = session.id
@@ -310,7 +310,7 @@ export default function DeliveryMapPage() {
     }
   }
 const terminarJornada = () => {
-  const sessionStr = localStorage.getItem('onetoone_panel_session')
+  const sessionStr = localStorage.getItem('onetoone_panel_session_rider')
   if (sessionStr) {
     try {
       const session = JSON.parse(sessionStr)

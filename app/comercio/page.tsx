@@ -36,11 +36,11 @@ function ComercioPanel() {
   const [checking, setChecking] = useState(true)
 
 useEffect(() => {
-  if (!hasValidPanelSession()) {
+  if (!hasValidPanelSession('merchant')) {
     router.push('/')
     return
   }
-  const s = getPanelSession()
+            const s = getPanelSession('merchant')
   if (s && s.type !== 'merchant') {
     router.push('/delivery')
     return
@@ -61,8 +61,8 @@ useEffect(() => {
     setKanbanEnabled(prev => !prev)
     // TODO: guardar en Supabase (merchants.kanban_enabled)
   }
-    const handleLogout = () => {
-    revokePanelSession()
+        const handleLogout = () => {
+    revokePanelSession('merchant')
     router.push('/')
   }
 

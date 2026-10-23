@@ -149,8 +149,8 @@ const [showPanelAccess, setShowPanelAccess] = useState(false)
         <div className="flex flex-col items-center py-4 px-4">
           <div
             className="flex items-center gap-2 cursor-pointer"
-            onClick={() => {
-  if (hasValidPanelSession()) {
+                        onClick={() => {
+  if (hasValidPanelSession('merchant')) {
     window.location.href = '/comercio'
   } else {
     setShowPanelAccess(true)

@@ -13,7 +13,13 @@ interface PanelAccessModalProps {
   onSuccess: (type: 'merchant' | 'rider', id: string, name: string) => void
 }
 
-const SESSION_KEY = 'onetoone_panel_session'
+const SESSION_KEY_MERCHANT = 'onetoone_session_merchant'
+const SESSION_KEY_RIDER = 'onetoone_session_rider'
+
+export type SessionType = 'merchant' | 'rider'
+
+const getSessionKey = (type: SessionType): string =>
+  type === 'merchant' ? SESSION_KEY_MERCHANT : SESSION_KEY_RIDER
 
 interface Session {
   type: 'merchant' | 'rider'
@@ -115,7 +121,7 @@ export function PanelAccessModal({ open, onClose, onSuccess }: PanelAccessModalP
         grantedAt: new Date().toISOString(),
         expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
       }
-      localStorage.setItem(SESSION_KEY, JSON.stringify(session))
+            localStorage.setItem(SESSION_KEY_MERCHANT, JSON.stringify(session))
       setPassword('')
       setSelectedKey('')
       setError('')
@@ -143,7 +149,7 @@ export function PanelAccessModal({ open, onClose, onSuccess }: PanelAccessModalP
         grantedAt: new Date().toISOString(),
         expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
       }
-      localStorage.setItem(SESSION_KEY, JSON.stringify(session))
+            localStorage.setItem(SESSION_KEY_RIDER, JSON.stringify(session))
       setPassword('')
       setSelectedKey('')
       setError('')
@@ -272,9 +278,9 @@ export function PanelAccessModal({ open, onClose, onSuccess }: PanelAccessModalP
 
 // ==================== HELPERS ====================
 
-export function hasValidPanelSession(): boolean {
+export function hasValidPanelSession(type: SessionType): boolean {
   if (typeof window === 'undefined') return false
-  const stored = localStorage.getItem(SESSION_KEY)
+  const stored = localStorage.getItem(getSessionKey(type))
   if (!stored) return false
   try {
     const session: Session = JSON.parse(stored)
@@ -284,9 +290,9 @@ export function hasValidPanelSession(): boolean {
   }
 }
 
-export function getPanelSession(): Session | null {
+export function getPanelSession(type: SessionType): Session | null {
   if (typeof window === 'undefined') return null
-  const stored = localStorage.getItem(SESSION_KEY)
+  const stored = localStorage.getItem(getSessionKey(type))
   if (!stored) return null
   try {
     const session: Session = JSON.parse(stored)
@@ -297,7 +303,7 @@ export function getPanelSession(): Session | null {
   }
 }
 
-export function revokePanelSession() {
+export function revokePanelSession(type: SessionType) {
   if (typeof window === 'undefined') return
-  localStorage.removeItem(SESSION_KEY)
+  localStorage.removeItem(getSessionKey(type))
 }

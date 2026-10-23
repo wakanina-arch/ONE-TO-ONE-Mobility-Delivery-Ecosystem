@@ -34,11 +34,11 @@ export default function DeliveryPanel() {
   const [jornadaActiva, setJornadaActiva] = useState(false)
 
   useEffect(() => {
-  if (!hasValidPanelSession()) {
+    if (!hasValidPanelSession('rider')) {
     router.push('/')
     return
   }
-  const s = getPanelSession()
+    const s = getPanelSession('rider')
   // 🔒 Si la sesión es de merchant → redirigir a su panel
   if (s && s.type !== 'rider') {
     router.push('/comercio')
@@ -54,7 +54,7 @@ export default function DeliveryPanel() {
 }, [router])
 
   const handleLogout = () => {
-    revokePanelSession()
+        revokePanelSession('rider')
     router.push('/')
   }
 
