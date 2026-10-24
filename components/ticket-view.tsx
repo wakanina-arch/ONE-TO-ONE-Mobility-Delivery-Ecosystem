@@ -49,47 +49,48 @@ const STATUS_STAGE: Record<string, string> = {
   cancelled: 'Recibido',
 }
 
+// Porcentajes de 2 en 2 (16 barras / 8 pasos = 2 barras por paso)
 const STATUS_PROGRESS: Record<string, number> = {
-  created: 12,
-  accepted: 25,
-  preparing: 42,
-  ready: 56,
-  picked_up: 68,
-  delivering: 84,
-  delivered: 100,
-  cancelled: 12,
+  created: 12.5,      // paso 1: 2 barras
+  accepted: 25,       // legacy
+  preparing: 25,      // paso 2: 4 barras (con o sin rider, no avanza)
+  ready: 50,          // paso 3: 8 barras (Listo)
+  picked_up: 50,      // legacy
+  delivering: 62.5,   // paso 4: 10 barras (En camino)
+  delivered: 100,     // paso 5: 16 barras (Entregado)
+  cancelled: 12.5,
 }
+
+// Progreso para el paso 3 (preparing + rider_id)
+const PROGRESS_WITH_RIDER = 37.5 // paso 3: 6 barras
 
 const getStatusMessage = (status: string, merchantName: string) => {
   const merchant = merchantName || 'El comercio'
 
   switch (status.toLowerCase()) {
-    case 'created':
-      return `Enviamos tu pedido a ${merchant}. Estamos esperando que lo acepte.`
-    case 'accepted':
-      return `${merchant} aceptó tu pedido. Ahora comienza la preparación.`
-    case 'preparing':
-      return `${merchant} está preparando tu pedido.`
-    case 'ready':
-      return 'Tu pedido está listo para que el Ryder lo recoja.'
-    case 'picked_up':
-      return `${merchant} confirmó que tu pedido está listo para recoger.`
-    case 'delivering':
-      return 'El Ryder lleva tu pedido. Tiempo estimado inicial: 30–45 minutos.'
-    case 'delivered':
-      return 'El pedido se marcó como entregado. ¡Buen provecho!'
-    case 'cancelled':
-      return 'El pedido fue cancelado. Si necesitas ayuda, contacta al comercio.'
-    case 'pendiente':
-    case 'recibido':
-      return `Enviamos tu pedido a ${merchant}. Estamos esperando que lo acepte.`
+    // ...
+        case 'preparing':
     case 'preparando':
     case 'preparacion':
-      return `${merchant} está preparando tu pedido.`
+      return `${merchant} ha aceptado tu pedido.`
+
+    case 'ready':
     case 'listo':
       return 'Tu pedido está listo para que el Ryder lo recoja.'
+
+    case 'picked_up':
+      return 'Tu pedido está listo para que el Ryder lo recoja.'
+
+    case 'delivering':
+      return 'El Ryder lleva tu pedido. Tiempo estimado: 30–45 minutos.'
+
+    case 'delivered':
     case 'entregado':
-      return 'El pedido se marcó como entregado. ¡Buen provecho!'
+      return 'Disfruta de tu pedido.'
+
+    case 'cancelled':
+      return 'El pedido fue cancelado. Si necesitas ayuda, contacta al comercio.'
+
     default:
       return `Estamos actualizando el estado de tu pedido con ${merchant}.`
   }
@@ -97,20 +98,22 @@ const getStatusMessage = (status: string, merchantName: string) => {
 
 const getProgressPercent = (status: string) => {
   const normalizedStatus = status.toLowerCase()
+
   if (STATUS_PROGRESS[normalizedStatus] !== undefined) {
     return STATUS_PROGRESS[normalizedStatus]
   }
+  // ...
 
   const legacyProgress: Record<string, number> = {
-    pendiente: 12,
-    recibido: 12,
-    preparando: 42,
-    preparacion: 42,
-    listo: 56,
+    pendiente: 12.5,
+    recibido: 12.5,
+    preparando: 25,
+    preparacion: 25,
+    listo: 50,
     entregado: 100,
   }
 
-  return legacyProgress[normalizedStatus] ?? 12
+  return legacyProgress[normalizedStatus] ?? 12.5
 }
 
 // Frases inspiracionales (se mantienen)
@@ -309,9 +312,7 @@ export function TicketView({ order, onBackHome }: TicketViewProps) {
               )
             })}
           </div>
-          <p className="mt-2 text-center text-[10px] text-muted-foreground">
-            El estado se actualiza automáticamente cada 10 segundos.
-          </p>
+          
         </div>
 
         {/* --- RESUMEN DE ITEMS (Compacto y legible) --- */}
