@@ -67,9 +67,13 @@ const PROGRESS_WITH_RIDER = 37.5 // paso 3: 6 barras
 const getStatusMessage = (status: string, merchantName: string) => {
   const merchant = merchantName || 'El comercio'
 
-  switch (status.toLowerCase()) {
-    // ...
-        case 'preparing':
+    switch (status.toLowerCase()) {
+    case 'created':
+    case 'pendiente':
+    case 'recibido':
+      return `${merchant} ha recibido tu pedido.`
+
+    case 'preparing':
     case 'preparando':
     case 'preparacion':
       return `${merchant} ha aceptado tu pedido.`
