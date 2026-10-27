@@ -1,5 +1,7 @@
 'use client'
 
+import { createClient } from '@/lib/supabase/client'
+
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -99,10 +101,54 @@ export function ComercioEditor({ open, onClose, comercioId, onSave }: ComercioEd
     updatePlato(catIdx, optIdx, 'promo', undefined)
   }
 
-  const guardarCambios = async () => {
+      const guardarCambios = async () => {
     setSaving(true)
     try {
+      // 1. Guardar en localStorage (comportamiento actual)
       localStorage.setItem(`menu_${comercioId}`, JSON.stringify(items))
+
+      // 2. Guardar en Supabase (products) — para que la app pública lo vea
+      const supabase = createClient()
+
+      // Aplanar los platos de todas las categorías
+      const platosPlanos = items.flatMap((categoria) =>
+        categoria.opciones
+          .filter((plato) => !plato.eliminado)
+          .map((plato) => ({
+            merchant_id: comercioId,
+            name: plato.nombre,
+            description: plato.descripcion || '',
+            price: plato.precio,
+            image_url: plato.imagen || '',
+            category: categoria.nombre,
+            available: true,
+          }))
+      )
+
+      if (platosPlanos.length > 0) {
+        // Borrar los platos anteriores de este comercio
+        const { error: deleteError } = await supabase
+          .from('products')
+          .delete()
+          .eq('merchant_id', comercioId)
+
+        if (deleteError) {
+          console.error('Error borrando platos anteriores:', deleteError)
+        }
+
+        // Insertar los platos actuales
+        const { error: insertError } = await supabase
+          .from('products')
+          .insert(platosPlanos)
+
+        if (insertError) {
+          console.error('Error guardando platos en Supabase:', insertError)
+          alert('Error guardando el menú. Revisa la consola.')
+          setSaving(false)
+          return
+        }
+      }
+
       if (onSave) onSave(items)
       if (onClose) onClose()
     } catch (error) {
@@ -220,7 +266,7 @@ export function ComercioEditor({ open, onClose, comercioId, onSave }: ComercioEd
         type="file" 
         accept="image/*" 
         className="hidden" 
-        onChange={async (e) => {
+                onChange={async (e) => {
           const file = e.target.files?.[0];
           if (!file) return;
           if (!file.type.startsWith('image/')) {
@@ -231,12 +277,29 @@ export function ComercioEditor({ open, onClose, comercioId, onSave }: ComercioEd
             alert('La imagen no puede superar los 2MB');
             return;
           }
-          const reader = new FileReader();
-          reader.onload = (ev) => {
-            const base64 = ev.target?.result as string;
-            updatePlato(catIdx, optIdx, 'imagen', base64);
-          };
-          reader.readAsDataURL(file);
+
+          try {
+            const supabase = createClient()
+            const ext = file.name.split('.').pop() || 'jpg'
+            const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
+            const { error: uploadError } = await supabase.storage
+              .from('products')
+              .upload(fileName, file, { cacheControl: '3600', upsert: false })
+
+            if (uploadError) {
+              alert('Error subiendo la imagen: ' + uploadError.message)
+              return
+            }
+
+            const { data: publicUrl } = supabase.storage
+              .from('products')
+              .getPublicUrl(fileName)
+
+            updatePlato(catIdx, optIdx, 'imagen', publicUrl.publicUrl)
+          } catch (err) {
+            alert('Error inesperado subiendo la imagen')
+            console.error(err)
+          }
         }}
       />
       <Camera className="h-5 w-5 mb-1 text-gray-400" />
