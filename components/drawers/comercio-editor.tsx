@@ -6,8 +6,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { X, Plus, Camera, ChevronDown, ChevronRight, Trash2, Tag, Save, ImageIcon } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { Plus, Camera, ChevronDown, ChevronRight, Trash2, Tag, Save, ImageIcon } from 'lucide-react'
 
 const CATEGORIAS = ['Desayunos', 'Almuerzos', 'Especiales', 'Postres', 'Bebidas']
 const EVENTOS_PROMO = ['Día de la Madre', 'Día del Padre', 'Navidad', '2x1', 'Vacaciones', 'Día del Amor']
@@ -39,75 +38,78 @@ interface ComercioEditorProps {
 export function ComercioEditor({ open, onClose, comercioId, onSave }: ComercioEditorProps) {
     const [items, setItems] = useState<CategoriaMenu[]>([])
   const itemsRef = useRef<CategoriaMenu[]>([])
+    const temporaryIdRef = useRef(0)
   const [expandidas, setExpandidas] = useState<Record<number, boolean>>({})
   const [modalOferta, setModalOferta] = useState<{ catIdx: number; optIdx: number } | null>(null)
   const [ofertaData, setOfertaData] = useState({ descuento: '', promo: 'Día de la Madre' })
   const [saving, setSaving] = useState(false)
 
-  useEffect(() => {
-  if (!open) return
-  const cargarDesdeSupabase = async () => {
-    const supabase = createClient()
-    const { data, error } = await supabase
-      .from('products')
-      .select('*')
-      .eq('merchant_id', comercioId)
-      .order('created_at', { ascending: true })
-
-    if (error || !data || data.length === 0) {
-      // Si no hay productos en Supabase, arrancar con categorías vacías
-      const categoriasVacias = CATEGORIAS.map(cat => ({ nombre: cat, opciones: [] }))
-      setItems(categoriasVacias)
-      return
-    }
-      // Mantener itemsRef sincronizado con items
+    // 1. Efecto para mantener itemsRef sincronizado (separado, no dentro del otro)
   useEffect(() => {
     itemsRef.current = items
   }, [items])
 
-    // Agrupar productos por categoría
-    const porCategoria: Record<string, Plato[]> = {}
-    data.forEach((p) => {
-      const cat = p.category || 'General'
-      if (!porCategoria[cat]) porCategoria[cat] = []
-      porCategoria[cat].push({
-        id: p.id,
-        nombre: p.name,
-        descripcion: p.description || '',
-        precio: Number(p.price),
-        imagen: p.image_url || '',
-        enOferta: p.en_oferta ?? false,
-        descuento: p.descuento ? Number(p.descuento) : undefined,
-        promo: p.promo || undefined,
-        eliminado: false,
-      })
-    })
+  // 2. Efecto para cargar los datos de Supabase
+  useEffect(() => {
+    if (!open) return
+    const cargarDesdeSupabase = async () => {
+      const supabase = createClient()
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .eq('merchant_id', comercioId)
+        .order('created_at', { ascending: true })
 
-    // Construir el array de categorías, respetando el orden de CATEGORIAS
-    const categorias: CategoriaMenu[] = CATEGORIAS.map((cat) => ({
-      nombre: cat,
-      opciones: porCategoria[cat] || [],
-    }))
-
-    // Añadir categorías que estén en Supabase pero no en CATEGORIAS
-    Object.keys(porCategoria).forEach((cat) => {
-      if (!CATEGORIAS.includes(cat)) {
-        categorias.push({ nombre: cat, opciones: porCategoria[cat] })
+      if (error || !data || data.length === 0) {
+        // Si no hay productos en Supabase, arrancar con categorías vacías
+        const categoriasVacias = CATEGORIAS.map(cat => ({ nombre: cat, opciones: [] }))
+        setItems(categoriasVacias)
+        return
       }
-    })
 
-    setItems(categorias)
-  }
+      // Agrupar productos por categoría
+      const porCategoria: Record<string, Plato[]> = {}
+      data.forEach((p) => {
+        const cat = p.category || 'General'
+        if (!porCategoria[cat]) porCategoria[cat] = []
+        porCategoria[cat].push({
+          id: p.id,
+          nombre: p.name,
+          descripcion: p.description || '',
+          precio: Number(p.price),
+          imagen: p.image_url || '',
+          enOferta: p.en_oferta ?? false,
+          descuento: p.descuento ? Number(p.descuento) : undefined,
+          promo: p.promo || undefined,
+          eliminado: false,
+        })
+      })
 
-  cargarDesdeSupabase()
-}, [open, comercioId])
+      // Construir el array de categorías
+      const categorias: CategoriaMenu[] = CATEGORIAS.map((cat) => ({
+        nombre: cat,
+        opciones: porCategoria[cat] || [],
+      }))
+
+      // Añadir categorías extra si existen en la BD
+      Object.keys(porCategoria).forEach((cat) => {
+        if (!CATEGORIAS.includes(cat)) {
+          categorias.push({ nombre: cat, opciones: porCategoria[cat] })
+        }
+      })
+
+      setItems(categorias)
+    }
+
+    cargarDesdeSupabase()
+  }, [open, comercioId])
 
   if (!open) return null
 
   const addPlato = (catIdx: number) => {
     const nuevos = [...items]
     nuevos[catIdx].opciones.push({
-     id: `temp_${Date.now()}`,
+      id: `temp_${++temporaryIdRef.current}`,
       nombre: '',
       descripcion: '',
       precio: 0,
@@ -119,7 +121,12 @@ export function ComercioEditor({ open, onClose, comercioId, onSave }: ComercioEd
     setExpandidas({ ...expandidas, [catIdx]: true })
   }
 
-  const updatePlato = (catIdx: number, optIdx: number, campo: keyof Plato, valor: any) => {
+  const updatePlato = <Campo extends keyof Plato>(
+    catIdx: number,
+    optIdx: number,
+    campo: Campo,
+    valor: Plato[Campo],
+  ) => {
     const nuevos = [...items]
     nuevos[catIdx].opciones[optIdx] = { ...nuevos[catIdx].opciones[optIdx], [campo]: valor }
     setItems(nuevos)
@@ -273,7 +280,7 @@ export function ComercioEditor({ open, onClose, comercioId, onSave }: ComercioEd
                 {cat.opciones.length === 0 && (
                   <div className="text-center py-3 border-2 border-dashed border-gray-600 rounded-lg bg-gray-800/20">
                     <p className="text-xs text-gray-400">No hay productos en {cat.nombre.toLowerCase()}</p>
-                    <p className="text-[10px] text-gray-500 mt-0.5">Haz clic en "Añadir plato" para comenzar</p>
+                    <p className="text-[10px] text-gray-500 mt-0.5">Haz clic en &quot;Añadir plato&quot; para comenzar</p>
                   </div>
                 )}
                 
@@ -400,7 +407,7 @@ export function ComercioEditor({ open, onClose, comercioId, onSave }: ComercioEd
                             step="0.01"
                             placeholder="0.00"
                             value={plato.precio || ''}
-                            onChange={(e) => updatePlato(catIdx, optIdx, 'precio', parseFloat(e.target.value))}
+                            onChange={(e) => updatePlato(catIdx, optIdx, 'precio', e.target.value ? Number(e.target.value) : 0)}
                             className="mt-0.5 h-7 text-xs bg-gray-800/50 border-gray-700 text-white"
                           />
                         </div>
