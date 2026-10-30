@@ -2,7 +2,7 @@
 
 import { createClient } from '@/lib/supabase/client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -37,7 +37,8 @@ interface ComercioEditorProps {
 }
 
 export function ComercioEditor({ open, onClose, comercioId, onSave }: ComercioEditorProps) {
-  const [items, setItems] = useState<CategoriaMenu[]>([])
+    const [items, setItems] = useState<CategoriaMenu[]>([])
+  const itemsRef = useRef<CategoriaMenu[]>([])
   const [expandidas, setExpandidas] = useState<Record<number, boolean>>({})
   const [modalOferta, setModalOferta] = useState<{ catIdx: number; optIdx: number } | null>(null)
   const [ofertaData, setOfertaData] = useState({ descuento: '', promo: 'Día de la Madre' })
@@ -59,6 +60,10 @@ export function ComercioEditor({ open, onClose, comercioId, onSave }: ComercioEd
       setItems(categoriasVacias)
       return
     }
+      // Mantener itemsRef sincronizado con items
+  useEffect(() => {
+    itemsRef.current = items
+  }, [items])
 
     // Agrupar productos por categoría
     const porCategoria: Record<string, Plato[]> = {}
@@ -167,8 +172,8 @@ export function ComercioEditor({ open, onClose, comercioId, onSave }: ComercioEd
       // 2. Guardar en Supabase (products) — para que la app pública lo vea
       const supabase = createClient()
 
-            // Guardar plato por plato: insertar nuevos, actualizar existentes, borrar eliminados
-      for (const categoria of items) {
+                  // Guardar plato por plato: insertar nuevos, actualizar existentes, borrar eliminados
+      for (const categoria of itemsRef.current) {
         for (const plato of categoria.opciones) {
           // 1. Si está marcado como eliminado, borrarlo de Supabase
           if (plato.eliminado) {
@@ -226,7 +231,7 @@ export function ComercioEditor({ open, onClose, comercioId, onSave }: ComercioEd
         }
       }
 
-      if (onSave) onSave(items)
+            if (onSave) onSave(itemsRef.current)
       if (onClose) onClose()
     } catch (error) {
       console.error('Error al guardar:', error)
@@ -245,9 +250,9 @@ export function ComercioEditor({ open, onClose, comercioId, onSave }: ComercioEd
   </div>
   <div className="flex justify-center gap-3">
     <Button variant="outline" onClick={onClose} className="h-6 text-xs border-gray-600 text-gray-300">Cancelar</Button>
-    <Button onClick={guardarCambios} disabled={saving} className="h-6 text-xs bg-olive-600 hover:bg-olive-700 text-white">
-      <Save className="h-3 w-3 mr-1" /> {saving ? 'Guardando...' : 'Guardar'}
-    </Button>
+    <Button onClick={guardarCambios} disabled={saving} className="h-6 text-xs bg-olive-600 hover:bg-olive-700 text-white min-w-[90px]">
+  <Save className="h-3 w-3 mr-1" /> {saving ? 'Guardando...' : 'Guardar'}
+</Button>
   </div>
 </div>
 
