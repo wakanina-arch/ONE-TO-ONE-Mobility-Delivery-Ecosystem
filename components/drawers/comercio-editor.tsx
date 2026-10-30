@@ -44,22 +44,65 @@ export function ComercioEditor({ open, onClose, comercioId, onSave }: ComercioEd
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
-    if (!open) return
-    const menuGuardado = localStorage.getItem(`menu_${comercioId}`)
-    if (menuGuardado) {
-      setItems(JSON.parse(menuGuardado))
-    } else {
+  if (!open) return
+  const cargarDesdeSupabase = async () => {
+    const supabase = createClient()
+    const { data, error } = await supabase
+      .from('products')
+      .select('*')
+      .eq('merchant_id', comercioId)
+      .order('created_at', { ascending: true })
+
+    if (error || !data || data.length === 0) {
+      // Si no hay productos en Supabase, arrancar con categorías vacías
       const categoriasVacias = CATEGORIAS.map(cat => ({ nombre: cat, opciones: [] }))
       setItems(categoriasVacias)
+      return
     }
-  }, [open, comercioId])
+
+    // Agrupar productos por categoría
+    const porCategoria: Record<string, Plato[]> = {}
+    data.forEach((p) => {
+      const cat = p.category || 'General'
+      if (!porCategoria[cat]) porCategoria[cat] = []
+      porCategoria[cat].push({
+        id: p.id,
+        nombre: p.name,
+        descripcion: p.description || '',
+        precio: Number(p.price),
+        imagen: p.image_url || '',
+        enOferta: p.en_oferta ?? false,
+        descuento: p.descuento ? Number(p.descuento) : undefined,
+        promo: p.promo || undefined,
+        eliminado: false,
+      })
+    })
+
+    // Construir el array de categorías, respetando el orden de CATEGORIAS
+    const categorias: CategoriaMenu[] = CATEGORIAS.map((cat) => ({
+      nombre: cat,
+      opciones: porCategoria[cat] || [],
+    }))
+
+    // Añadir categorías que estén en Supabase pero no en CATEGORIAS
+    Object.keys(porCategoria).forEach((cat) => {
+      if (!CATEGORIAS.includes(cat)) {
+        categorias.push({ nombre: cat, opciones: porCategoria[cat] })
+      }
+    })
+
+    setItems(categorias)
+  }
+
+  cargarDesdeSupabase()
+}, [open, comercioId])
 
   if (!open) return null
 
   const addPlato = (catIdx: number) => {
     const nuevos = [...items]
     nuevos[catIdx].opciones.push({
-      id: Date.now().toString(),
+     id: `temp_${Date.now()}`,
       nombre: '',
       descripcion: '',
       precio: 0,
@@ -110,11 +153,25 @@ export function ComercioEditor({ open, onClose, comercioId, onSave }: ComercioEd
       // 2. Guardar en Supabase (products) — para que la app pública lo vea
       const supabase = createClient()
 
-      // Aplanar los platos de todas las categorías
-      const platosPlanos = items.flatMap((categoria) =>
-        categoria.opciones
-          .filter((plato) => !plato.eliminado)
-          .map((plato) => ({
+            // Guardar plato por plato: insertar nuevos, actualizar existentes, borrar eliminados
+      for (const categoria of items) {
+        for (const plato of categoria.opciones) {
+          // 1. Si está marcado como eliminado, borrarlo de Supabase
+          if (plato.eliminado) {
+            if (plato.id && !plato.id.startsWith('temp_') && plato.id.length > 30) {
+              const { error: delError } = await supabase
+                .from('products')
+                .delete()
+                .eq('id', plato.id)
+              if (delError) console.error('Error eliminando plato:', delError)
+            }
+            continue
+          }
+
+          // 2. Si el plato está vacío (sin nombre o sin precio), saltarlo
+          if (!plato.nombre || !plato.precio) continue
+
+          const payload = {
             merchant_id: comercioId,
             name: plato.nombre,
             description: plato.descripcion || '',
@@ -122,30 +179,36 @@ export function ComercioEditor({ open, onClose, comercioId, onSave }: ComercioEd
             image_url: plato.imagen || '',
             category: categoria.nombre,
             available: true,
-          }))
-      )
+            en_oferta: plato.enOferta ?? false,
+            descuento: plato.descuento ?? 0,
+            promo: plato.promo ?? '',
+          }
 
-      if (platosPlanos.length > 0) {
-        // Borrar los platos anteriores de este comercio
-        const { error: deleteError } = await supabase
-          .from('products')
-          .delete()
-          .eq('merchant_id', comercioId)
+          // 3. Si el ID es temporal o no existe, insertar. Si es UUID real, actualizar.
+          const esNuevo = !plato.id || plato.id.startsWith('temp_') || plato.id.length < 30
 
-        if (deleteError) {
-          console.error('Error borrando platos anteriores:', deleteError)
-        }
-
-        // Insertar los platos actuales
-        const { error: insertError } = await supabase
-          .from('products')
-          .insert(platosPlanos)
-
-        if (insertError) {
-          console.error('Error guardando platos en Supabase:', insertError)
-          alert('Error guardando el menú. Revisa la consola.')
-          setSaving(false)
-          return
+          if (esNuevo) {
+            const { error: insertError } = await supabase
+              .from('products')
+              .insert(payload)
+            if (insertError) {
+              console.error('Error insertando plato:', insertError)
+              alert('Error guardando el menú. Revisa la consola.')
+              setSaving(false)
+              return
+            }
+          } else {
+            const { error: updateError } = await supabase
+              .from('products')
+              .update(payload)
+              .eq('id', plato.id)
+            if (updateError) {
+              console.error('Error actualizando plato:', updateError)
+              alert('Error guardando el menú. Revisa la consola.')
+              setSaving(false)
+              return
+            }
+          }
         }
       }
 
