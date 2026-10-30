@@ -126,22 +126,36 @@ export function ComercioEditor({ open, onClose, comercioId, onSave }: ComercioEd
     setItems(nuevos)
   }
 
-  const aplicarOferta = () => {
+    const aplicarOferta = () => {
     if (!modalOferta) return
     const { catIdx, optIdx } = modalOferta
     const desc = parseFloat(ofertaData.descuento)
     if (isNaN(desc) || desc <= 0) return
-    updatePlato(catIdx, optIdx, 'enOferta', true)
-    updatePlato(catIdx, optIdx, 'descuento', desc)
-    updatePlato(catIdx, optIdx, 'promo', ofertaData.promo)
+
+    // Actualizar el plato completo en una sola operación
+    const nuevos = [...items]
+    nuevos[catIdx].opciones[optIdx] = {
+      ...nuevos[catIdx].opciones[optIdx],
+      enOferta: true,
+      descuento: desc,
+      promo: ofertaData.promo,
+    }
+    setItems(nuevos)
+
     setModalOferta(null)
     setOfertaData({ descuento: '', promo: 'Día de la Madre' })
   }
 
   const eliminarOferta = (catIdx: number, optIdx: number) => {
-    updatePlato(catIdx, optIdx, 'enOferta', false)
-    updatePlato(catIdx, optIdx, 'descuento', undefined)
-    updatePlato(catIdx, optIdx, 'promo', undefined)
+    // Actualizar el plato completo en una sola operación
+    const nuevos = [...items]
+    nuevos[catIdx].opciones[optIdx] = {
+      ...nuevos[catIdx].opciones[optIdx],
+      enOferta: false,
+      descuento: undefined,
+      promo: undefined
+    }
+    setItems(nuevos)
   }
 
       const guardarCambios = async () => {
