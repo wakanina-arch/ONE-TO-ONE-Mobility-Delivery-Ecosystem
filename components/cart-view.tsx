@@ -630,7 +630,19 @@ await supabase
                         <Trash2 className="h-3 w-3" />
                       </Button>
                     </div>
-                    <p className="text-primary font-bold text-[11px]">${item.precio.toFixed(2)}</p>
+                    {item.enOferta && (
+                      <p className="text-[9px] text-red-500">
+                        -{item.descuento}% {item.promo || 'Oferta'}
+                      </p>
+                    )}
+                    <div className="flex items-baseline gap-1">
+                      {item.enOferta && item.precioOriginal !== undefined && (
+                        <span className="text-[9px] text-muted-foreground line-through">
+                          ${item.precioOriginal.toFixed(2)}
+                        </span>
+                      )}
+                      <p className="text-primary font-bold text-[11px]">${item.precio.toFixed(2)}</p>
+                    </div>
                     <div className="flex items-center justify-between mt-1">
                       <div className="flex items-center gap-1 bg-muted rounded-full p-0.5">
                         <Button

@@ -142,7 +142,10 @@ export function ComercioEditor({ open, onClose, comercioId, onSave }: ComercioEd
     if (!modalOferta) return
     const { catIdx, optIdx } = modalOferta
     const desc = parseFloat(ofertaData.descuento)
-    if (isNaN(desc) || desc <= 0) return
+    if (!Number.isFinite(desc) || desc <= 0 || desc > 100) {
+      alert('El descuento debe estar entre 1 y 100%.')
+      return
+    }
 
     // Actualizar el plato completo en una sola operación
     const nuevos = [...items]
@@ -479,6 +482,8 @@ export function ComercioEditor({ open, onClose, comercioId, onSave }: ComercioEd
             <label className="text-[10px] font-medium text-gray-400 block mb-1">Descuento (%):</label>
             <input
               type="number"
+              min="1"
+              max="100"
               placeholder="Ej: 20"
               className="w-full border border-gray-700 rounded-lg px-2 py-1.5 mb-3 bg-gray-800 text-white text-xs"
               value={ofertaData.descuento}

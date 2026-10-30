@@ -80,15 +80,29 @@ export function MenuView({ onBack, onOpenCart }: MenuViewProps) {
 
   // 4. Convertir productos de Supabase a MenuItem (formato del carrito)
   const menuItems: MenuItem[] = useMemo(() => {
-    return productos.map(p => ({
-      id: p.id,
-      nombre: p.name,
-      descripcion: p.description || '',
-      precio: p.price,
-      categoria: p.category || 'Otros',
-      imagen: p.image_url || '',
-      disponible: p.available,
-    }))
+    return productos.map(p => {
+      const descuento = Number(p.descuento)
+      const enOferta = p.en_oferta === true
+        && Number.isFinite(descuento)
+        && descuento > 0
+        && descuento <= 100
+
+      return {
+        id: p.id,
+        nombre: p.name,
+        descripcion: p.description || '',
+        precio: enOferta
+          ? Math.round(p.price * (1 - descuento / 100) * 100) / 100
+          : p.price,
+        categoria: p.category || 'Otros',
+        imagen: p.image_url || '',
+        disponible: p.available,
+        enOferta,
+        descuento: enOferta ? descuento : undefined,
+        promo: enOferta ? p.promo || undefined : undefined,
+        precioOriginal: enOferta ? p.price : undefined,
+      }
+    })
   }, [productos])
 
   // 5. Orden personalizado de categorías (edítalo a tu gusto)
@@ -301,9 +315,23 @@ const categorias = useMemo(() => {
                         </p>
 
                         <div className="flex items-center justify-between mt-1">
-                          <span className="text-sm font-bold text-primary">
-                            ${item.precio.toFixed(2)}
-                          </span>
+                          <div className="flex flex-col items-start">
+                            {item.enOferta && (
+                              <Badge className="mb-0.5 h-4 bg-red-600 px-1.5 text-[8px] text-white">
+                                -{item.descuento}% {item.promo || 'Oferta'}
+                              </Badge>
+                            )}
+                            <div className="flex items-baseline gap-1">
+                              {item.enOferta && item.precioOriginal !== undefined && (
+                                <span className="text-[10px] text-muted-foreground line-through">
+                                  ${item.precioOriginal.toFixed(2)}
+                                </span>
+                              )}
+                              <span className="text-sm font-bold text-primary">
+                                ${item.precio.toFixed(2)}
+                              </span>
+                            </div>
+                          </div>
 
                           {qty === 0 ? (
                             <Button

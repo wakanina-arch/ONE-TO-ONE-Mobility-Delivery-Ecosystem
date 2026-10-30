@@ -200,6 +200,9 @@ export interface Product {
   image_url: string | null
   available: boolean
   created_at: string
+  en_oferta?: boolean | null
+  descuento?: number | null
+  promo?: string | null
 }
 
 /**

@@ -10,6 +10,10 @@ export interface MenuItem {
   categoria: string
   imagen: string
   disponible: boolean
+  enOferta?: boolean
+  descuento?: number
+  promo?: string
+  precioOriginal?: number
   tiempoPreparacion?: number
   alergenos?: string[]
   calorias?: number
@@ -104,7 +108,7 @@ export const useCartStore = create<CartStore>()((set, get) => ({
     }
     
     // Obtener carrito actual del comercio (desde localStorage o vacío)
-    let currentItems: any[] = []
+    let currentItems: CartItem[] = []
     if (!currentId || currentId === comercioId) {
       currentItems = [...get().items]
     } else {
@@ -113,9 +117,13 @@ export const useCartStore = create<CartStore>()((set, get) => ({
     }
     
     // Agregar o actualizar item
-    const existingIndex = currentItems.findIndex((i: any) => i.id === item.id)
+    const existingIndex = currentItems.findIndex(i => i.id === item.id)
     if (existingIndex >= 0) {
-      currentItems[existingIndex].cantidad += 1
+      currentItems[existingIndex] = {
+        ...currentItems[existingIndex],
+        ...item,
+        cantidad: currentItems[existingIndex].cantidad + 1,
+      }
     } else {
       currentItems.push({ ...item, cantidad: 1 })
     }
