@@ -85,7 +85,7 @@ export function PanelAccessModal({ open, onClose, onSuccess }: PanelAccessModalP
 
   if (!open) return null
 
-  const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
 
@@ -98,41 +98,66 @@ export function PanelAccessModal({ open, onClose, onSuccess }: PanelAccessModalP
       return
     }
 
-    // selectedKey = "merchant:uuid" o "rider:uuid"
     const [type, id] = selectedKey.split(':') as ['merchant' | 'rider', string]
 
-    if (type === 'merchant') {
-      const idx = merchants.findIndex((m) => m.id === id)
-      if (idx === -1) {
-        setError('Comercio no válido')
-        return
+    try {
+      let email = ''
+      if (type === 'merchant') {
+        const merchant = merchants.find((m) => m.id === id)
+        if (!merchant) {
+          setError('Comercio no válido')
+          return
+        }
+        const slug = merchant.name.toLowerCase().replace(/\s+/g, '')
+        email = `${slug}@onetoone.com`
+      } else {
+        const rider = riders.find((r) => r.id === id)
+        if (!rider) {
+          setError('Ryder no válido')
+          return
+        }
+        const match = rider.name.match(/(\d+)/)
+        const num = match ? match[1] : ''
+        email = `ryder${num}@onetoone.com`
       }
-      const expectedPassword = String(idx + 1).padStart(2, '0')
-      if (password !== expectedPassword) {
-        setError('Contraseña incorrecta')
+
+      const supabase = createClient()
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
+
+      if (authError) {
+        setError('Contraseña incorrecta o usuario no válido')
         setPassword('')
         return
       }
-      const merchant = merchants[idx]
+
       const session: Session = {
-        type: 'merchant',
-        id: merchant.id,
-        name: merchant.name,
+        type,
+        id,
+        name: type === 'merchant'
+          ? merchants.find((m) => m.id === id)?.name || ''
+          : riders.find((r) => r.id === id)?.name || '',
         grantedAt: new Date().toISOString(),
         expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
       }
-            localStorage.setItem(SESSION_KEY_MERCHANT, JSON.stringify(session))
+
+      if (type === 'merchant') {
+        localStorage.setItem(SESSION_KEY_MERCHANT, JSON.stringify(session))
+      } else {
+        localStorage.setItem(SESSION_KEY_RIDER, JSON.stringify(session))
+      }
+
       setPassword('')
       setSelectedKey('')
       setError('')
-      onSuccess('merchant', merchant.id, merchant.name)
-    } else {
-      // Rider: contraseña = el propio número (101, 102, ...)
-      const rider = riders.find((r) => r.id === id)
-      if (!rider) {
-        setError('Ryder no válido')
-        return
-      }
+      onSuccess(type, id, session.name)
+    } catch (err) {
+      console.error('Error en login:', err)
+      setError('Error al iniciar sesión')
+    }
+  }
       // Extraer el número del nombre: "Ryder 101" → "101"
       const match = rider.name.match(/(\d+)/)
       const expectedPassword = match ? match[1] : ''
