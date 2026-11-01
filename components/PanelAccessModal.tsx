@@ -158,29 +158,7 @@ export function PanelAccessModal({ open, onClose, onSuccess }: PanelAccessModalP
       setError('Error al iniciar sesión')
     }
   }
-      // Extraer el número del nombre: "Ryder 101" → "101"
-      const match = rider.name.match(/(\d+)/)
-      const expectedPassword = match ? match[1] : ''
-      if (password !== expectedPassword) {
-        setError('Contraseña incorrecta')
-        setPassword('')
-        return
-      }
-      const session: Session = {
-        type: 'rider',
-        id: rider.id,
-        name: rider.name,
-        avatar: rider.avatar,
-        grantedAt: new Date().toISOString(),
-        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-      }
-            localStorage.setItem(SESSION_KEY_RIDER, JSON.stringify(session))
-      setPassword('')
-      setSelectedKey('')
-      setError('')
-      onSuccess('rider', rider.id, rider.name)
-    }
-  }
+      
 
   const handleClose = () => {
     setPassword('')
