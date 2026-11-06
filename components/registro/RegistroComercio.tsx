@@ -146,19 +146,36 @@ export function RegistroComercio({ onBack, onIrAlPanel }: RegistroComercioProps)
     }
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!validarStep2()) return
     setEnviando(true)
     try {
-      const registros = JSON.parse(localStorage.getItem('registros_comercios') || '[]')
-      const nuevoRegistro = { ...formData, id: Date.now(), estado: 'pendiente', fechaRegistro: new Date().toISOString() }
-      registros.push(nuevoRegistro)
-      localStorage.setItem('registros_comercios', JSON.stringify(registros))
+      // Generar contraseña temporal (el comercio la cambiará después)
+      const passwordTemporal = `temp_${Date.now()}`
+
+      const res = await fetch('/api/registro-comercio', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...formData,
+          password: passwordTemporal,
+        }),
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        alert('Error: ' + (data.error || 'No se pudo registrar'))
+        setEnviando(false)
+        return
+      }
+
       setExito(true)
-      setMostrarManual(true)
+      setMostrarManual(false) // quitamos el manual ridículo
     } catch (error) {
       console.error('Error:', error)
+      alert('Error al conectar con el servidor')
     } finally {
       setEnviando(false)
     }
