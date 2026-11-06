@@ -11,8 +11,11 @@ import { TicketView } from '@/components/ticket-view'
 import { Branding } from '@/components/branding'
 import { RegistroComercio } from '@/components/registro/RegistroComercio'
 import { OpcionesUnion } from '@/components/registro/OpcionesUnion'
-import { PanelAccessModal, hasValidPanelSession } 
-  from '@/components/PanelAccessModal'
+import {
+  PanelAccessModal,
+  grantPanelSession,
+  hasValidPanelSession,
+} from '@/components/PanelAccessModal'
 import { UserButton } from '@/components/UserButton'
 import { ChevronRight, Bike} from 'lucide-react'
 import {
@@ -291,7 +294,8 @@ const [showPanelAccess, setShowPanelAccess] = useState(false)
       {showRegistro && (
         <RegistroComercio
           onBack={() => setShowRegistro(false)}
-          onIrAlPanel={() => {
+          onIrAlPanel={(id, nombre) => {
+            grantPanelSession('merchant', id, nombre)
             setShowRegistro(false)
             window.location.href = '/comercio?openEditor=true'
           }}

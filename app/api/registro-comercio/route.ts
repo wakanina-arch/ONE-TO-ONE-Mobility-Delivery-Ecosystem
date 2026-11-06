@@ -1,31 +1,32 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
-// Cliente con service_role (SOLO en servidor, nunca en cliente)
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
-
 export async function POST(req: Request) {
   try {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+    if (!supabaseUrl || !serviceRoleKey) {
+      console.error('Falta configurar Supabase para el registro de comercios')
+      return NextResponse.json(
+        { error: 'El servicio de registro no está configurado' },
+        { status: 500 }
+      )
+    }
+
+    // Cliente con service_role (SOLO en servidor, nunca en cliente)
+    const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey)
     const body = await req.json()
     const {
       email,
       password,
       nombreComercio,
       propietario,
-      ruc,
       telefono,
       direccion,
       ciudad,
-      categoriaCocina,
       descripcion,
-      horarioApertura,
-      horarioCierre,
-      plan,
       logo,
-      aceptaTerminos,
     } = body
 
     // 1. Crear usuario en Auth
@@ -59,8 +60,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: profileError.message }, { status: 400 })
     }
 
-    // 3. Crear comercio en merchants (pendiente de aprobación)
-    const { error: merchantError } = await supabaseAdmin
+    // 3. Crear comercio en merchants para que aparezca inmediatamente en la app
+    const { data: merchant, error: merchantError } = await supabaseAdmin
       .from('merchants')
       .insert({
         user_id: userId,
@@ -70,17 +71,19 @@ export async function POST(req: Request) {
         phone: telefono,
         description: descripcion,
         logo_url: logo, // base64 o URL
-        active: false, // pendiente de aprobación
+        active: true,
         always_open: false,
         kanban_enabled: true,
       })
+      .select('id')
+      .single()
 
     if (merchantError) {
       await supabaseAdmin.auth.admin.deleteUser(userId)
       return NextResponse.json({ error: merchantError.message }, { status: 400 })
     }
 
-    return NextResponse.json({ success: true, userId })
+    return NextResponse.json({ success: true, userId, merchantId: merchant.id })
   } catch (err) {
     console.error('Error en registro:', err)
     return NextResponse.json({ error: 'Error interno' }, { status: 500 })

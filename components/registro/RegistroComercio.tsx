@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Card } from '@/components/ui/card'
 import { ManualUsuario } from './ManualUsuario'
+import { createClient } from '@/lib/supabase/client'
 import { 
   X, Camera, Store, User, FileText, Phone, Mail, MapPin, Clock, 
   CreditCard, Shield, CheckCircle, AlertCircle, ArrowRight, 
@@ -26,13 +27,15 @@ const PLANES = [
 
 interface RegistroComercioProps {
   onBack: () => void
-  onIrAlPanel?: (id: number) => void
+  onIrAlPanel?: (id: string, nombre: string) => void
 }
 
 export function RegistroComercio({ onBack, onIrAlPanel }: RegistroComercioProps) {
   const [step, setStep] = useState(1)
   const [enviando, setEnviando] = useState(false)
   const [exito, setExito] = useState(false)
+  const [merchantId, setMerchantId] = useState<string | null>(null)
+  const [errorAcceso, setErrorAcceso] = useState('')
   const [logoPreview, setLogoPreview] = useState<string | null>(null)
   const [mostrarContrato, setMostrarContrato] = useState(false)
   const [contratoLeido, setContratoLeido] = useState(false)
@@ -146,8 +149,7 @@ export function RegistroComercio({ onBack, onIrAlPanel }: RegistroComercioProps)
     }
   }
 
-    const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleSubmit = async () => {
     if (!validarStep2()) return
     setEnviando(true)
     try {
@@ -163,19 +165,33 @@ export function RegistroComercio({ onBack, onIrAlPanel }: RegistroComercioProps)
         }),
       })
 
-      const data = await res.json()
+      const data: { error?: string; merchantId?: string } = await res.json()
 
       if (!res.ok) {
         alert('Error: ' + (data.error || 'No se pudo registrar'))
-        setEnviando(false)
         return
       }
 
+      if (!data.merchantId) {
+        throw new Error('El servidor no devolvió el identificador del comercio')
+      }
+
+      setMerchantId(data.merchantId)
+      const { error: loginError } = await createClient().auth.signInWithPassword({
+        email: formData.email,
+        password: passwordTemporal,
+      })
+
+      if (loginError) {
+        console.error('El comercio se creó, pero no se pudo iniciar sesión:', loginError)
+        setErrorAcceso('El comercio se registró, pero no se pudo iniciar sesión automáticamente. Contacta con soporte para acceder al panel.')
+      }
+
       setExito(true)
-      setMostrarManual(false) // quitamos el manual ridículo
+      setMostrarManual(false)
     } catch (error) {
       console.error('Error:', error)
-      alert('Error al conectar con el servidor')
+      alert(error instanceof Error ? error.message : 'Error al conectar con el servidor')
     } finally {
       setEnviando(false)
     }
@@ -187,17 +203,13 @@ export function RegistroComercio({ onBack, onIrAlPanel }: RegistroComercioProps)
         onClose={() => setMostrarManual(false)}
         onAcceder={() => {
           setMostrarManual(false)
-          if (onIrAlPanel) {
-            onIrAlPanel(Date.now())
-          }
+          void handleSubmit()
         }}
       />
     )
   }
 
   if (exito) {
-    const registros = JSON.parse(localStorage.getItem('registros_comercios') || '[]')
-    const ultimoRegistro = registros[registros.length - 1]
     return (
       <div className="fixed inset-0 z-[9999] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
         <div className="bg-gray-900 rounded-2xl max-w-md w-full p-6 text-center animate-fade-in shadow-2xl border border-olive-500/30">
@@ -205,9 +217,16 @@ export function RegistroComercio({ onBack, onIrAlPanel }: RegistroComercioProps)
             <CheckCircle className="h-7 w-7 text-olive-400" />
           </div>
           <h2 className="text-xl font-bold text-white mb-1">¡Registro exitoso!</h2>
-          <p className="text-gray-400 text-sm mb-4">Tu comercio está listo para configurar</p>
-          <Button onClick={() => onIrAlPanel?.(ultimoRegistro?.id)} className="w-full bg-olive-600 hover:bg-olive-700 text-white text-sm h-9">
-            🚀 Configurar mi negocio
+          <p className="text-gray-400 text-sm mb-4">Tu comercio ya está activo y aparecerá con los demás comercios.</p>
+          {errorAcceso && <p className="text-red-400 text-xs mb-3">{errorAcceso}</p>}
+          <Button
+            onClick={() => {
+              if (merchantId) onIrAlPanel?.(merchantId, formData.nombreComercio)
+            }}
+            disabled={!merchantId || Boolean(errorAcceso)}
+            className="w-full bg-olive-600 hover:bg-olive-700 text-white text-sm h-9"
+          >
+            🚀 Acceder al panel
           </Button>
           <Button variant="ghost" onClick={onBack} className="mt-2 w-full text-gray-400 text-xs">Hacerlo después</Button>
         </div>
@@ -363,11 +382,11 @@ export function RegistroComercio({ onBack, onIrAlPanel }: RegistroComercioProps)
                 
                 <label className="flex items-center gap-1.5 text-[10px] text-gray-300">
                   <input type="checkbox" name="aceptaTerminos" checked={formData.aceptaTerminos} onChange={handleChange} disabled={!contratoLeido} className="accent-olive-500 w-3 h-3" />
-                   <button type="button" onClick={() => setMostrarContrato(true)} className="text-orange-500 underline">Leer yAceptar lostérminos y condiciones</button>
+                   <button type="button" onClick={() => setMostrarContrato(true)} className="text-orange-500 underline">Leer y Aceptar los términos y condiciones</button>
                 </label>
                 {errores.aceptaTerminos && <p className="text-[9px] text-red-400">{errores.aceptaTerminos}</p>}
                 
-                <Button type="button" onClick={handleSubmit} disabled={enviando} className="w-full bg-olive-600 hover:bg-olive-700 text-white text-xs h-8">
+                <Button type="button" onClick={() => void handleSubmit()} disabled={enviando} className="w-full bg-olive-600 hover:bg-olive-700 text-white text-xs h-8">
                   {enviando ? 'Registrando...' : '🚀 Registrar comercio'}
                 </Button>
                 
@@ -469,7 +488,16 @@ export function RegistroComercio({ onBack, onIrAlPanel }: RegistroComercioProps)
       
       {/* Footer con botón */}
       <div className="p-3 border-t border-gray-700">
-              <button onClick={() => { setMostrarContrato(false); setMostrarManual(true) }} className="w-full py-1.5 bg-olive-600 hover:bg-olive-700 text-white rounded-lg font-bold text-xs transition-colors">
+              <button
+                onClick={() => {
+                  setMostrarContrato(false)
+                  if (contratoLeido) {
+                    setFormData(prev => ({ ...prev, aceptaTerminos: true }))
+                    setMostrarManual(true)
+                  }
+                }}
+                className="w-full py-1.5 bg-olive-600 hover:bg-olive-700 text-white rounded-lg font-bold text-xs transition-colors"
+              >
                 {contratoLeido ? 'Aceptar' : 'Cerrar'}
               </button>
             </div>

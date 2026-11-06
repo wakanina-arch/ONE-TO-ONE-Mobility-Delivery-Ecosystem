@@ -30,6 +30,18 @@ interface Session {
   expiresAt: string
 }
 
+export function grantPanelSession(type: SessionType, id: string, name: string) {
+  const session: Session = {
+    type,
+    id,
+    name,
+    grantedAt: new Date().toISOString(),
+    expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+  }
+
+  localStorage.setItem(getSessionKey(type), JSON.stringify(session))
+}
+
 interface OptionItem {
   type: 'merchant' | 'rider'
   id: string
@@ -133,26 +145,16 @@ export function PanelAccessModal({ open, onClose, onSuccess }: PanelAccessModalP
         return
       }
 
-      const session: Session = {
-        type,
-        id,
-        name: type === 'merchant'
-          ? merchants.find((m) => m.id === id)?.name || ''
-          : riders.find((r) => r.id === id)?.name || '',
-        grantedAt: new Date().toISOString(),
-        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-      }
+      const sessionName = type === 'merchant'
+        ? merchants.find((m) => m.id === id)?.name || ''
+        : riders.find((r) => r.id === id)?.name || ''
 
-      if (type === 'merchant') {
-        localStorage.setItem(SESSION_KEY_MERCHANT, JSON.stringify(session))
-      } else {
-        localStorage.setItem(SESSION_KEY_RIDER, JSON.stringify(session))
-      }
+      grantPanelSession(type, id, sessionName)
 
       setPassword('')
       setSelectedKey('')
       setError('')
-      onSuccess(type, id, session.name)
+      onSuccess(type, id, sessionName)
     } catch (err) {
       console.error('Error en login:', err)
       setError('Error al iniciar sesión')
