@@ -251,7 +251,6 @@ function KanbanPanel() {
   const router = useRouter()
   const [orders, setOrders] = useState<Order[]>([])
   const [activeTab, setActiveTab] = useState<Tab>('recepcion')
-    const [kanbanTabs, setKanbanTabs] = useState<string[]>(['recepcion', 'produccion', 'entrega', 'historial'])
   const [loading, setLoading] = useState(true)
           const [merchantId, setMerchantId] = useState<string | null>(null)
   const [merchantName, setMerchantName] = useState<string | null>(null)
