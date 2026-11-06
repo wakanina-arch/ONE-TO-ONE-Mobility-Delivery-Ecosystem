@@ -240,7 +240,7 @@ export function RegistroComercio({ onBack, onIrAlPanel }: RegistroComercioProps)
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-3">
-          <form onSubmit={handleSubmit} className="space-y-3">
+          <form className="space-y-3">
             {step === 1 ? (
               <>
                 <div>
@@ -363,11 +363,11 @@ export function RegistroComercio({ onBack, onIrAlPanel }: RegistroComercioProps)
                 
                 <label className="flex items-center gap-1.5 text-[10px] text-gray-300">
                   <input type="checkbox" name="aceptaTerminos" checked={formData.aceptaTerminos} onChange={handleChange} disabled={!contratoLeido} className="accent-olive-500 w-3 h-3" />
-                  Aceptar los <button type="button" onClick={() => setMostrarContrato(true)} className="text-orange-500 underline">términos y condiciones</button>
+                   <button type="button" onClick={() => setMostrarContrato(true)} className="text-orange-500 underline">Leer yAceptar lostérminos y condiciones</button>
                 </label>
                 {errores.aceptaTerminos && <p className="text-[9px] text-red-400">{errores.aceptaTerminos}</p>}
                 
-                <Button type="submit" disabled={enviando} className="w-full bg-olive-600 hover:bg-olive-700 text-white text-xs h-8">
+                <Button type="button" onClick={handleSubmit} disabled={enviando} className="w-full bg-olive-600 hover:bg-olive-700 text-white text-xs h-8">
                   {enviando ? 'Registrando...' : '🚀 Registrar comercio'}
                 </Button>
                 
