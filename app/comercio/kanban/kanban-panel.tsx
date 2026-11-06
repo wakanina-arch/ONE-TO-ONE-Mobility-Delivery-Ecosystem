@@ -251,16 +251,34 @@ function KanbanPanel() {
   const router = useRouter()
   const [orders, setOrders] = useState<Order[]>([])
   const [activeTab, setActiveTab] = useState<Tab>('recepcion')
+    const [kanbanTabs, setKanbanTabs] = useState<string[]>(['recepcion', 'produccion', 'entrega', 'historial'])
   const [loading, setLoading] = useState(true)
-        const [merchantId, setMerchantId] = useState<string | null>(null)
+          const [merchantId, setMerchantId] = useState<string | null>(null)
   const [merchantName, setMerchantName] = useState<string | null>(null)
+  const [kanbanTabs, setKanbanTabs] = useState<string[]>(['recepcion', 'produccion', 'entrega', 'historial'])
   const [sessionReady, setSessionReady] = useState(false)
 
   // 1. Cargar sesión post-montaje (evita hydration mismatch de localStorage en SSR)
-  useEffect(() => {
-       const session = getPanelSession('merchant')
+    useEffect(() => {
+    const session = getPanelSession('merchant')
     setMerchantId(session?.id ?? null)
     setMerchantName(session?.name ?? null)
+
+    // Si hay sesión, cargar kanban_tabs
+    if (session?.id) {
+      const supabase = createClient()
+      supabase
+        .from('merchants')
+        .select('kanban_tabs')
+        .eq('id', session.id)
+        .single()
+        .then(({ data }) => {
+          if (data?.kanban_tabs && Array.isArray(data.kanban_tabs)) {
+            setKanbanTabs(data.kanban_tabs)
+          }
+        })
+    }
+
     setSessionReady(true)
   }, [])
 
@@ -380,12 +398,15 @@ function KanbanPanel() {
   const displayOrders = pedidosPorTab(activeTab)
   const hasOrders = displayOrders.length > 0
 
-  const tabs = [
+    const allTabs = [
     { id: 'recepcion' as Tab, label: 'Recepción', icon: Bell, count: pedidosRecepcion.length, color: 'text-amber-500' },
     { id: 'produccion' as Tab, label: 'Producción', icon: ChefHat, count: pedidosProduccion.length, color: 'text-orange-500' },
     { id: 'entrega' as Tab, label: 'Entrega', icon: Package, count: pedidosEntrega.length, color: 'text-emerald-500' },
     { id: 'historial' as Tab, label: 'Historial', icon: Clipboard, count: pedidosHistorial.length, color: 'text-blue-500' },
   ]
+
+  // Filtrar los tabs según lo que el comercio tenga configurado en kanban_tabs
+  const tabs = allTabs.filter(tab => kanbanTabs.includes(tab.id))
 
   const ventasHoy = orders
     .filter(o => o.status === 'delivered')
