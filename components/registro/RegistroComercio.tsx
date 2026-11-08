@@ -10,7 +10,7 @@ import { createClient } from '@/lib/supabase/client'
 import { 
   X, Camera, Store, User, FileText, Phone, Mail, MapPin, Clock, 
   CreditCard, Shield, CheckCircle, AlertCircle, ArrowRight, 
-  Building2, Briefcase, ChevronRight, ChevronLeft, Star
+  Building2, Briefcase, ChevronRight, ChevronLeft, Star, Lock
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -54,6 +54,8 @@ export function RegistroComercio({ onBack, onIrAlPanel }: RegistroComercioProps)
     horarioCierre: '22:00',
     plan: '',
     logo: '',
+    password: '',
+    confirmPassword: '',
     confirmaLicencias: false,
     confirmaPreciosReales: false,
     aceptaTerminos: false,
@@ -77,6 +79,12 @@ export function RegistroComercio({ onBack, onIrAlPanel }: RegistroComercioProps)
     if (!formData.telefono.trim()) err.telefono = 'Teléfono requerido'
     else if (!/^\d{10}$/.test(formData.telefono.replace(/\s/g, ''))) err.telefono = 'Teléfono debe tener 10 dígitos'
     if (!formData.logo) err.logo = 'Sube el logo de tu negocio'
+        if (!formData.password || formData.password.length < 6) {
+      err.password = 'La contraseña debe tener al menos 6 caracteres'
+    }
+    if (formData.password !== formData.confirmPassword) {
+      err.confirmPassword = 'Las contraseñas no coinciden'
+    }
     setErrores(err)
     return Object.keys(err).length === 0
   }
@@ -93,6 +101,12 @@ export function RegistroComercio({ onBack, onIrAlPanel }: RegistroComercioProps)
     else if (!formData.aceptaTerminos) err.aceptaTerminos = 'Debes aceptar los términos'
     setErrores(err)
     return Object.keys(err).length === 0
+        if (!formData.password || formData.password.length < 6) {
+      err.password = 'La contraseña debe tener al menos 6 caracteres'
+    }
+    if (formData.password !== formData.confirmPassword) {
+      err.confirmPassword = 'Las contraseñas no coinciden'
+    }
   }
 
   const handleNext = () => validarStep1() && setStep(2)
@@ -153,15 +167,12 @@ export function RegistroComercio({ onBack, onIrAlPanel }: RegistroComercioProps)
     if (!validarStep2()) return
     setEnviando(true)
     try {
-      // Generar contraseña temporal (el comercio la cambiará después)
-      const passwordTemporal = `temp_${Date.now()}`
-
-      const res = await fetch('/api/registro-comercio', {
+            const res = await fetch('/api/registro-comercio', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...formData,
-          password: passwordTemporal,
+          password: formData.password,
         }),
       })
 
@@ -177,9 +188,9 @@ export function RegistroComercio({ onBack, onIrAlPanel }: RegistroComercioProps)
       }
 
       setMerchantId(data.merchantId)
-      const { error: loginError } = await createClient().auth.signInWithPassword({
+            const { error: loginError } = await createClient().auth.signInWithPassword({
         email: formData.email,
-        password: passwordTemporal,
+        password: formData.password,
       })
 
       if (loginError) {
@@ -286,10 +297,36 @@ export function RegistroComercio({ onBack, onIrAlPanel }: RegistroComercioProps)
                   {errores.email && <p className="text-[9px] text-red-400 mt-0.5">{errores.email}</p>}
                 </div>
                 
-                <div>
+                                <div>
                   <label className="text-[10px] font-medium text-gray-400 flex items-center gap-1"><Phone className="h-3 w-3" /> Teléfono *</label>
                   <Input name="telefono" value={formData.telefono} onChange={handleChange} placeholder="0999999999" className="mt-0.5 h-8 text-xs bg-gray-800/50 border-gray-700 text-white" />
                   {errores.telefono && <p className="text-[9px] text-red-400 mt-0.5">{errores.telefono}</p>}
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-medium text-gray-400 flex items-center gap-1"><Lock className="h-3 w-3" /> Contraseña *</label>
+                  <Input
+                    name="password"
+                    type="password"
+                    value={formData.password}
+                    onChange={handleChange}
+                    placeholder="Mínimo 6 caracteres"
+                    className="mt-0.5 h-8 text-xs bg-gray-800/50 border-gray-700 text-white"
+                  />
+                  {errores.password && <p className="text-[9px] text-red-400 mt-0.5">{errores.password}</p>}
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-medium text-gray-400 flex items-center gap-1"><Lock className="h-3 w-3" /> Confirmar contraseña *</label>
+                  <Input
+                    name="confirmPassword"
+                    type="password"
+                    value={formData.confirmPassword}
+                    onChange={handleChange}
+                    placeholder="Repite la contraseña"
+                    className="mt-0.5 h-8 text-xs bg-gray-800/50 border-gray-700 text-white"
+                  />
+                  {errores.confirmPassword && <p className="text-[9px] text-red-400 mt-0.5">{errores.confirmPassword}</p>}
                 </div>
                 
                 <div>
@@ -382,7 +419,7 @@ export function RegistroComercio({ onBack, onIrAlPanel }: RegistroComercioProps)
                 
                 <label className="flex items-center gap-1.5 text-[10px] text-gray-300">
                   <input type="checkbox" name="aceptaTerminos" checked={formData.aceptaTerminos} onChange={handleChange} disabled={!contratoLeido} className="accent-olive-500 w-3 h-3" />
-                   <button type="button" onClick={() => setMostrarContrato(true)} className="text-orange-500 underline">Leer y Aceptar los términos y condiciones</button>
+                   <button type="button" onClick={() => setMostrarContrato(true)} className="text-orange-500 underline">Lea y acepte los términos y condiciones</button>
                 </label>
                 {errores.aceptaTerminos && <p className="text-[9px] text-red-400">{errores.aceptaTerminos}</p>}
                 
