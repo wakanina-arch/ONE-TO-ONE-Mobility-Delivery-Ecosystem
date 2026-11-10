@@ -17,7 +17,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ShoppingCart, Plus, Minus, ArrowLeft, X } from 'lucide-react'
-import { ComercioInfo } from '@/components/ComercioInfo'
+import { ComercioFooter } from '@/components/comercio-footer'
 import { cn } from '@/lib/utils'
 
 interface MenuViewProps {
@@ -379,15 +379,14 @@ const categorias = useMemo(() => {
         </main>
       </div>
 
-      {/* COMERCIO INFO — compacto para móvil */}
+            {/* FOOTER COMPACTO — teléfono, redes, dirección */}
       {comercio && (
-        <div className="mt-0">
-          <ComercioInfo
-            comercioId={comercio.id}
-            comercioNombre={comercio.name}
-            mode="public"
-          />
-        </div>
+        <ComercioFooter
+          comercioId={comercio.id}
+          comercioNombre={comercio.name}
+          direccionInicial={comercio.address || ''}
+          telefonoInicial={comercio.phone || ''}
+        />
       )}
 
       {/* Botón flotante del carrito */}

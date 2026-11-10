@@ -12,6 +12,11 @@ export interface Merchant {
   phone: string | null
   description: string | null
   logo_url: string | null
+  latitude?: number | null
+  longitude?: number | null
+  lat?: number | null
+  lng?: number | null
+  rating?: number | null
   active: boolean
   always_open: boolean
   created_at: string

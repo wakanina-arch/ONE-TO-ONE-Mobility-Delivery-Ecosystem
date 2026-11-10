@@ -399,6 +399,9 @@ export function ComercioEditor({ open, onClose, comercioId, onSave }: ComercioEd
       <span className="text-[8px] text-gray-500">JPG, PNG · Máx 2MB</span>
     </label>
   )}
+  <p className="mt-1 text-[9px] text-amber-300">
+    No subas fotos con personas identificables. Si las subes, serán rechazadas.
+  </p>
 </div>
                       
                       {/* Precio y Oferta */}

@@ -8,6 +8,7 @@ import { useCartStore } from '@/lib/store'
 import { MenuView } from '@/components/menu-view'
 import { CartView } from '@/components/cart-view'
 import { TicketView } from '@/components/ticket-view'
+import { ComercioLanding } from '@/components/comercio-landing'
 import { Branding } from '@/components/branding'
 import { RegistroComercio } from '@/components/registro/RegistroComercio'
 import { OpcionesUnion } from '@/components/registro/OpcionesUnion'
@@ -29,11 +30,13 @@ import {
 import { FRASES } from '@/lib/frases'
 
 const FRASE_FIJA = { texto: 'La llama que te consume también puede iluminar tu camino.', icono: '🔥' }
-type ViewState = 'welcome' | 'menu' | 'cart' | 'ticket'
+type ViewState = 'welcome' | 'landing' | 'menu' | 'cart' | 'ticket'
 
 export default function HomePage() {
   const [mostrarBienvenida, setMostrarBienvenida] = useState(true)
   const [view, setView] = useState<ViewState>('welcome')
+  const [comercioSeleccionado, setComercioSeleccionado] = useState<Merchant | null>(null)
+  const [cartReturnView, setCartReturnView] = useState<'landing' | 'menu'>('menu')
   const [completedOrder, setCompletedOrder] = useState<Order | null>(null)
   const [frase, setFrase] = useState(FRASE_FIJA)
   const [showRegistro, setShowRegistro] = useState(false)
@@ -80,6 +83,7 @@ const [showPanelAccess, setShowPanelAccess] = useState(false)
   }, [])
 
   const handleComercioClick = (comercio: Merchant) => {
+    setComercioSeleccionado(comercio)
     useCartStore.getState().setComercioId(comercio.id)
     localStorage.setItem(
       'comercio_seleccionado',
@@ -90,7 +94,7 @@ const [showPanelAccess, setShowPanelAccess] = useState(false)
         sector: comercio.sector,
       })
     )
-    setView('menu')
+    setView('landing')
   }
 
   // ==================== SPLASH ====================
@@ -138,10 +142,23 @@ const [showPanelAccess, setShowPanelAccess] = useState(false)
     )
   }
   if (view === 'cart') {
-    return <CartView onBack={() => setView('menu')} onOrderComplete={handleOrderComplete} />
+    return <CartView onBack={() => setView(cartReturnView)} onOrderComplete={handleOrderComplete} />
+  }
+  if (view === 'landing' && comercioSeleccionado) {
+    return (
+      <ComercioLanding
+        comercio={comercioSeleccionado}
+        onVerMenu={() => setView('menu')}
+        onVolver={() => setView('welcome')}
+        onAbrirCarrito={() => {
+          setCartReturnView('landing')
+          setView('cart')
+        }}
+      />
+    )
   }
   if (view === 'menu') {
-    return <MenuView onBack={() => setView('welcome')} onOpenCart={() => setView('cart')} />
+        return <MenuView onBack={() => setView('landing')} onOpenCart={() => setView('cart')} />
   }
 
   // ==================== HOME ====================
