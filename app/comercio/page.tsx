@@ -231,13 +231,12 @@ useEffect(() => {
         <div className="fixed inset-0 z-[9999] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-gray-900 rounded-2xl max-w-2xl w-full max-h-[85vh] flex flex-col animate-fade-in shadow-2xl border border-primary/30 overflow-hidden">
             {/* Header */}
-            <div className="flex justify-between items-center p-4 border-b border-gray-700 flex-shrink-0">
-              <div className="flex items-center gap-2">
-                <Utensils className="h-5 w-5 text-primary" />
-                <h2 className="text-lg font-bold text-white">Gestión de producción</h2>
-              </div>
+                        <div className="flex justify-between items-center p-3 border-b border-gray-700 flex-shrink-0">
+              <h2 className="text-lg font-bold text-white">Gestión de Producción</h2>
               <button
+                type="button"
                 onClick={() => setShowMenuEditor(false)}
+                aria-label="Cerrar Gestión de Producción"
                 className="text-gray-400 hover:text-white"
               >
                 <X className="h-5 w-5" />

@@ -9,6 +9,8 @@ import { MenuView } from '@/components/menu-view'
 import { CartView } from '@/components/cart-view'
 import { TicketView } from '@/components/ticket-view'
 import { ComercioLanding } from '@/components/comercio-landing'
+import { ReservationForm } from '@/components/reservation-form'
+import { CateringForm } from '@/components/catering-form'
 import { Branding } from '@/components/branding'
 import { RegistroComercio } from '@/components/registro/RegistroComercio'
 import { OpcionesUnion } from '@/components/registro/OpcionesUnion'
@@ -30,7 +32,7 @@ import {
 import { FRASES } from '@/lib/frases'
 
 const FRASE_FIJA = { texto: 'La llama que te consume también puede iluminar tu camino.', icono: '🔥' }
-type ViewState = 'welcome' | 'landing' | 'menu' | 'cart' | 'ticket'
+type ViewState = 'welcome' | 'landing' | 'menu' | 'cart' | 'ticket' | 'reservation' | 'catering'
 
 export default function HomePage() {
   const [mostrarBienvenida, setMostrarBienvenida] = useState(true)
@@ -149,6 +151,8 @@ const [showPanelAccess, setShowPanelAccess] = useState(false)
       <ComercioLanding
         comercio={comercioSeleccionado}
         onVerMenu={() => setView('menu')}
+        onReservar={() => setView('reservation')}
+        onCatering={() => setView('catering')}
         onVolver={() => setView('welcome')}
         onAbrirCarrito={() => {
           setCartReturnView('landing')
@@ -156,6 +160,12 @@ const [showPanelAccess, setShowPanelAccess] = useState(false)
         }}
       />
     )
+  }
+  if (view === 'reservation' && comercioSeleccionado) {
+    return <ReservationForm comercio={comercioSeleccionado} onBack={() => setView('landing')} />
+  }
+  if (view === 'catering' && comercioSeleccionado) {
+    return <CateringForm comercio={comercioSeleccionado} onBack={() => setView('landing')} />
   }
   if (view === 'menu') {
         return <MenuView onBack={() => setView('landing')} onOpenCart={() => setView('cart')} />

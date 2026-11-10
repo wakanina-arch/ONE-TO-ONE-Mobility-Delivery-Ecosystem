@@ -17,6 +17,8 @@ import {
 interface ComercioLandingProps {
   comercio: Merchant
   onVerMenu: () => void
+  onReservar: () => void
+  onCatering: () => void
   onVolver: () => void
   onAbrirCarrito: () => void
 }
@@ -24,6 +26,8 @@ interface ComercioLandingProps {
 export function ComercioLanding({
   comercio,
   onVerMenu,
+  onReservar,
+  onCatering,
   onVolver,
   onAbrirCarrito,
 }: ComercioLandingProps) {
@@ -192,20 +196,20 @@ export function ComercioLanding({
             onClick={onVerMenu}
             className="rounded-2xl border border-amber-400/30 bg-amber-400/10 p-5 text-left transition hover:border-amber-300/70 hover:bg-amber-400/15"
           >
-            <span className="font-serif text-xl font-semibold">Ver menú</span>
+            <span className="font-serif text-xl font-semibold">Carta Menú</span>
             <span className="mt-2 block text-sm text-white/55">Descubre nuestros platos</span>
           </button>
           <button
             type="button"
-            onClick={() => alert('Próximamente')}
+            onClick={onReservar}
             className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 text-left transition hover:border-white/25 hover:bg-white/[0.06]"
           >
-            <span className="font-serif text-xl font-semibold">Reservar mesa</span>
+            <span className="font-serif text-xl font-semibold">Reservación de mesa</span>
             <span className="mt-2 block text-sm text-white/55">Planifica tu visita</span>
           </button>
           <button
             type="button"
-            onClick={() => alert('Próximamente')}
+            onClick={onCatering}
             className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 text-left transition hover:border-white/25 hover:bg-white/[0.06]"
           >
             <span className="font-serif text-xl font-semibold">Catering / Bufetes</span>

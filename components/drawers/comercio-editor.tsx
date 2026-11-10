@@ -6,7 +6,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { Plus, Camera, ChevronDown, ChevronRight, Trash2, Tag, Save, ImageIcon } from 'lucide-react'
+import { Plus, Camera, ChevronDown, ChevronRight, Trash2, Tag, Save, ImageIcon, ArrowLeft, X } from 'lucide-react'
 
 const CATEGORIAS = ['Desayunos', 'Almuerzos', 'Especiales', 'Postres', 'Bebidas']
 const EVENTOS_PROMO = ['Día de la Madre', 'Día del Padre', 'Navidad', '2x1', 'Vacaciones', 'Día del Amor']
@@ -43,6 +43,7 @@ export function ComercioEditor({ open, onClose, comercioId, onSave }: ComercioEd
   const [modalOferta, setModalOferta] = useState<{ catIdx: number; optIdx: number } | null>(null)
   const [ofertaData, setOfertaData] = useState({ descuento: '', promo: 'Día de la Madre' })
   const [saving, setSaving] = useState(false)
+  const [activeSection, setActiveSection] = useState<'menu' | 'reservas' | 'catering' | null>(null)
 
     // 1. Efecto para mantener itemsRef sincronizado (separado, no dentro del otro)
   useEffect(() => {
@@ -252,24 +253,104 @@ export function ComercioEditor({ open, onClose, comercioId, onSave }: ComercioEd
 
   return (
     <div className="p-3 space-y-3">
-      {/* Header compacto */}
-      <div className="border-b border-gray-700 pb-2">
-  <div className="flex items-center gap-2 mb-2">
-    <span className="text-primary text-lg">🔱</span>
-    <h2 className="text-sm font-bold text-white">Gestión de producción</h2>
-  </div>
-  <div className="flex justify-center gap-3">
-    <Button variant="outline" onClick={onClose} className="h-6 text-xs border-gray-600 text-gray-300">Cancelar</Button>
-    <Button onClick={guardarCambios} disabled={saving} className="h-6 text-xs bg-olive-600 hover:bg-olive-700 text-white min-w-[90px]">
-  <Save className="h-3 w-3 mr-1" /> {saving ? 'Guardando...' : 'Guardar'}
-</Button>
-  </div>
-</div>
+            <div className="border-b border-gray-700 pb-2">
+        {/* Header unificado: flecha (o título) a la izquierda, X a la derecha */}
+        <div className="flex items-center justify-between gap-3 mb-3">
+          <div className="flex items-center gap-2 min-w-0">
+            {activeSection !== null && (
+              <button
+                type="button"
+                onClick={() => setActiveSection(null)}
+                className="text-gray-400 hover:text-white transition-colors shrink-0"
+                aria-label="Volver a Gestión de Producción"
+              >
+                <ArrowLeft className="h-5 w-5" />
+              </button>
+            )}
+                        {activeSection !== null && (
+              <h2 className="text-lg font-bold text-white truncate">
+                {activeSection === 'menu'
+                  ? 'Carta Menú'
+                  : activeSection === 'reservas'
+                    ? 'Reservas'
+                    : 'Catering / Bufetes'}
+              </h2>
+            )}
+          </div>
+          
+        </div>
 
-      {/* Categorías acordeón */}
-      <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-1">
-        {items.map((cat, catIdx) => (
-          <div key={cat.nombre} className="border border-gray-700 rounded-lg overflow-hidden bg-gray-800/30">
+        {/* Índice: las 3 entradas (solo cuando no hay sección activa) */}
+        {activeSection === null && (
+          <div className="space-y-3">
+            <button
+              type="button"
+              onClick={() => setActiveSection('menu')}
+              className="w-full flex items-center gap-3 rounded-xl border border-gray-700 bg-gray-800/50 px-4 py-4 text-left text-white transition-colors hover:border-primary/50 hover:bg-gray-700/50"
+            >
+              <span aria-hidden="true" className="text-2xl">📋</span>
+              <span className="font-semibold">Carta Menú</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveSection('reservas')}
+              className="w-full flex items-center gap-3 rounded-xl border border-gray-700 bg-gray-800/50 px-4 py-4 text-left text-white transition-colors hover:border-primary/50 hover:bg-gray-700/50"
+            >
+              <span aria-hidden="true" className="text-2xl">🍽️</span>
+              <span className="font-semibold">Reservas</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveSection('catering')}
+              className="w-full flex items-center gap-3 rounded-xl border border-gray-700 bg-gray-800/50 px-4 py-4 text-left text-white transition-colors hover:border-primary/50 hover:bg-gray-700/50"
+            >
+              <span aria-hidden="true" className="text-2xl">🎉</span>
+              <span className="font-semibold">Catering / Bufetes</span>
+            </button>
+          </div>
+        )}
+
+        {/* Sección activa: botones de acción (solo en Carta Menú) */}
+        {activeSection === 'menu' && (
+          <div className="flex gap-2 mb-2">
+            <Button
+              variant="outline"
+              onClick={onClose}
+              className="h-8 text-xs border-gray-600 text-gray-300"
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={guardarCambios}
+              disabled={saving}
+              className="h-8 text-xs bg-olive-600 hover:bg-olive-700 text-white min-w-[90px]"
+            >
+              <Save className="h-3 w-3 mr-1" />
+              {saving ? 'Guardando...' : 'Guardar'}
+            </Button>
+          </div>
+        )}
+      </div>
+
+      {activeSection === 'reservas' && (
+        <div className="p-4 text-center text-gray-400 text-sm">
+          <p>No hay reservas todavía.</p>
+          <p className="text-xs mt-1">Las reservas aparecerán aquí cuando los clientes reserven mesa.</p>
+        </div>
+      )}
+
+      {activeSection === 'catering' && (
+        <div className="p-4 text-center text-gray-400 text-sm">
+          <p>No hay solicitudes de catering todavía.</p>
+          <p className="text-xs mt-1">Las solicitudes aparecerán aquí cuando los clientes pidan catering.</p>
+        </div>
+      )}
+
+      {/* Categorías y platos de la carta */}
+      {activeSection === 'menu' && (
+        <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-1">
+          {items.map((cat, catIdx) => (
+            <div key={cat.nombre} className="border border-gray-700 rounded-lg overflow-hidden bg-gray-800/30">
             <button
               onClick={() => setExpandidas({ ...expandidas, [catIdx]: !expandidas[catIdx] })}
               className="w-full flex items-center justify-between p-2 bg-gray-800/50 hover:bg-gray-700/50 transition-colors"
@@ -468,6 +549,7 @@ export function ComercioEditor({ open, onClose, comercioId, onSave }: ComercioEd
           </div>
         ))}
       </div>
+      )}
 
       {/* Modal de Oferta */}
       {modalOferta && (
