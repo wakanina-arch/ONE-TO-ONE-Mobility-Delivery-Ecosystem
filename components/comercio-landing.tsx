@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { ArrowLeft, Clock3, MapPin, Phone, ShoppingCart, Star } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ComercioInfo } from '@/components/ComercioInfo'
+import { createClient } from '@/lib/supabase/client'
 import {
   getMerchantSchedules,
   getProductsByMerchant,
@@ -34,6 +35,8 @@ export function ComercioLanding({
   const [horarios, setHorarios] = useState<MerchantSchedule[]>([])
   const [productos, setProductos] = useState<Product[]>([])
 
+    const [menuDelDia, setMenuDelDia] = useState<any>(null)
+
   useEffect(() => {
     let active = true
 
@@ -43,9 +46,19 @@ export function ComercioLanding({
         getProductsByMerchant(comercio.id),
       ])
 
+      // Consultar el menú del día activo
+      const supabase = createClient()
+      const { data: menuData } = await supabase
+        .from('daily_menus')
+        .select('*')
+        .eq('merchant_id', comercio.id)
+        .eq('active', true)
+        .maybeSingle()
+
       if (active) {
         setHorarios(horariosData)
         setProductos(productosData)
+        setMenuDelDia(menuData)
       }
     }
 
@@ -146,41 +159,30 @@ export function ComercioLanding({
           </div>
         </section>
 
-        {oferta && (
+           {menuDelDia && (
           <section className="relative overflow-hidden rounded-3xl border border-amber-400/25 bg-gradient-to-br from-amber-500/15 via-[#17140e] to-[#101112]">
-            {oferta.image_url && (
-              <img
-                src={oferta.image_url}
-                alt=""
-                aria-hidden="true"
-                className="absolute inset-0 h-full w-full object-cover opacity-20"
-              />
-            )}
             <div className="relative grid gap-6 p-6 sm:grid-cols-[1fr_auto] sm:items-center sm:p-8">
-                            <div>
+              <div>
                 <h2 className="font-serif text-3xl font-semibold text-white">
                   🔥 Menú del día
                 </h2>
                 <p className="mt-2 text-lg font-medium text-amber-300">
-                  {oferta.name}
+                  {menuDelDia.title}
                 </p>
-                {oferta.description && (
-                  <p className="mt-2 max-w-xl text-sm text-white/65">{oferta.description}</p>
+                {menuDelDia.description && (
+                  <p className="mt-2 max-w-xl text-sm text-white/65">{menuDelDia.description}</p>
                 )}
                 <p className="mt-4 flex items-baseline gap-3">
-                  <span className="text-sm text-white/45 line-through">
-                    ${oferta.price.toFixed(2)}
-                  </span>
                   <span className="text-2xl font-semibold text-amber-300">
-                    ${precioOferta.toFixed(2)}
+                    ${Number(menuDelDia.offer_price).toFixed(2)}
                   </span>
                 </p>
               </div>
-              {oferta.image_url && (
+              {menuDelDia.image_url && (
                 <img
-                  src={oferta.image_url}
-                  alt={oferta.name}
-                  className="h-36 w-full rounded-2xl object-cover shadow-xl sm:h-40 sm:w-48"
+                  src={menuDelDia.image_url}
+                  alt={menuDelDia.title}
+                  className="h-48 w-full rounded-2xl object-contain p-2 shadow-xl sm:h-64 sm:w-72"
                 />
               )}
               <Button
