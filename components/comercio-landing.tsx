@@ -157,9 +157,13 @@ export function ComercioLanding({
               />
             )}
             <div className="relative grid gap-6 p-6 sm:grid-cols-[1fr_auto] sm:items-center sm:p-8">
-              <div>
-                <p className="text-sm font-semibold text-amber-300">🔥 Oferta especial</p>
-                <h2 className="mt-2 font-serif text-3xl font-semibold">{oferta.name}</h2>
+                            <div>
+                <h2 className="font-serif text-3xl font-semibold text-white">
+                  🔥 Menú del día
+                </h2>
+                <p className="mt-2 text-lg font-medium text-amber-300">
+                  {oferta.name}
+                </p>
                 {oferta.description && (
                   <p className="mt-2 max-w-xl text-sm text-white/65">{oferta.description}</p>
                 )}
@@ -196,7 +200,7 @@ export function ComercioLanding({
             onClick={onVerMenu}
             className="rounded-2xl border border-amber-400/30 bg-amber-400/10 p-5 text-left transition hover:border-amber-300/70 hover:bg-amber-400/15"
           >
-            <span className="font-serif text-xl font-semibold">Carta Menú</span>
+            <span className="font-serif text-xl font-semibold">Carta </span>
             <span className="mt-2 block text-sm text-white/55">Descubre nuestros platos</span>
           </button>
           <button
@@ -204,8 +208,8 @@ export function ComercioLanding({
             onClick={onReservar}
             className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 text-left transition hover:border-white/25 hover:bg-white/[0.06]"
           >
-            <span className="font-serif text-xl font-semibold">Reservación de mesa</span>
-            <span className="mt-2 block text-sm text-white/55">Planifica tu visita</span>
+            <span className="font-serif text-xl font-semibold">Reservas</span>
+            <span className="mt-2 block text-sm text-white/55">Visítanos o pide para llevar</span>
           </button>
           <button
             type="button"
