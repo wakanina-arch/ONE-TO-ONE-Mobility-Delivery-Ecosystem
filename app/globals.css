@@ -3,6 +3,42 @@
 
 @custom-variant dark (&:is(.dark *));
 
+@media print {
+  body * {
+    visibility: hidden !important;
+  }
+
+  .invitation-card-print,
+  .invitation-card-print * {
+    visibility: visible !important;
+  }
+
+  .invitation-card-print {
+    position: absolute !important;
+    inset: 0 auto auto 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+    border-color: #b78a35 !important;
+    background: #fff !important;
+    box-shadow: none !important;
+    color: #1b1b1b !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  .invitation-card-print * {
+    color: #1b1b1b !important;
+  }
+
+  .invitation-card-print svg {
+    color: #000 !important;
+  }
+
+  .invitation-card-print .bg-white {
+    background: #fff !important;
+  }
+}
+
 /* ONE TO ONE - Paleta de colores ecuatoriana */
 :root {
   --background: oklch(0.08 0.01 30);
@@ -501,4 +537,3 @@ body,
   border: 0.375rem solid transparent;
   border-top-color: #1f2937;
 }
-

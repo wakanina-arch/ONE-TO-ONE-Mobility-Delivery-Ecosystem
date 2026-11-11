@@ -6,6 +6,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
+import { DailyMenuEditor } from '@/components/daily-menu-editor'
 import { Plus, Camera, ChevronDown, ChevronRight, Trash2, Tag, Save, ImageIcon, ArrowLeft, X } from 'lucide-react'
 
 const CATEGORIAS = ['Desayunos', 'Almuerzos', 'Especiales', 'Postres', 'Bebidas']
@@ -43,7 +44,7 @@ export function ComercioEditor({ open, onClose, comercioId, onSave }: ComercioEd
   const [modalOferta, setModalOferta] = useState<{ catIdx: number; optIdx: number } | null>(null)
   const [ofertaData, setOfertaData] = useState({ descuento: '', promo: 'Día de la Madre' })
   const [saving, setSaving] = useState(false)
-  const [activeSection, setActiveSection] = useState<'menu' | 'reservas' | 'catering' | null>(null)
+    const [activeSection, setActiveSection] = useState<'menu' | 'dailyMenu' | 'reservas' | 'catering' | null>(null)
 
     // 1. Efecto para mantener itemsRef sincronizado (separado, no dentro del otro)
   useEffect(() => {
@@ -267,45 +268,58 @@ export function ComercioEditor({ open, onClose, comercioId, onSave }: ComercioEd
                 <ArrowLeft className="h-5 w-5" />
               </button>
             )}
-                        {activeSection !== null && (
-              <h2 className="text-lg font-bold text-white truncate">
-                {activeSection === 'menu'
-                  ? 'Carta Menú'
-                  : activeSection === 'reservas'
-                    ? 'Reservas'
-                    : 'Catering / Bufetes'}
-              </h2>
-            )}
+                                      {activeSection !== null && (
+                <h2 className="text-lg font-bold text-white truncate">
+                  {activeSection === 'menu'
+                    ? 'Carta'
+                    : activeSection === 'dailyMenu'
+                      ? 'Menú'
+                      : activeSection === 'reservas'
+                        ? 'Reservas'
+                      : 'Catering'}
+                            {activeSection === 'dailyMenu' && (
+        <DailyMenuEditor merchantId={comercioId} />
+      )}
+                </h2>
+              )}
           </div>
           
         </div>
 
         {/* Índice: las 3 entradas (solo cuando no hay sección activa) */}
-        {activeSection === null && (
-          <div className="space-y-3">
+                {activeSection === null && (
+          <div className="grid grid-cols-2 gap-3">
             <button
               type="button"
               onClick={() => setActiveSection('menu')}
-              className="w-full flex items-center gap-3 rounded-xl border border-gray-700 bg-gray-800/50 px-4 py-4 text-left text-white transition-colors hover:border-primary/50 hover:bg-gray-700/50"
+              className="flex flex-col items-center gap-2 rounded-xl border border-gray-700 bg-gray-800/50 px-3 py-5 text-center text-white transition-colors hover:border-primary/50 hover:bg-gray-700/50"
             >
               <span aria-hidden="true" className="text-2xl">📋</span>
-              <span className="font-semibold">Carta Menú</span>
+              <span className="font-semibold text-sm">Carta</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveSection('dailyMenu')}
+              className="flex flex-col items-center gap-2 rounded-xl border border-gray-700 bg-gray-800/50 px-3 py-5 text-center text-white transition-colors hover:border-primary/50 hover:bg-gray-700/50"
+            >
+              <span aria-hidden="true" className="text-2xl">🍽️</span>
+              <span className="font-semibold text-sm">Menú</span>
             </button>
             <button
               type="button"
               onClick={() => setActiveSection('reservas')}
-              className="w-full flex items-center gap-3 rounded-xl border border-gray-700 bg-gray-800/50 px-4 py-4 text-left text-white transition-colors hover:border-primary/50 hover:bg-gray-700/50"
+              className="flex flex-col items-center gap-2 rounded-xl border border-gray-700 bg-gray-800/50 px-3 py-5 text-center text-white transition-colors hover:border-primary/50 hover:bg-gray-700/50"
             >
-              <span aria-hidden="true" className="text-2xl">🍽️</span>
-              <span className="font-semibold">Reservas</span>
+              <span aria-hidden="true" className="text-2xl">📅</span>
+              <span className="font-semibold text-sm">Reservas</span>
             </button>
             <button
               type="button"
               onClick={() => setActiveSection('catering')}
-              className="w-full flex items-center gap-3 rounded-xl border border-gray-700 bg-gray-800/50 px-4 py-4 text-left text-white transition-colors hover:border-primary/50 hover:bg-gray-700/50"
+              className="flex flex-col items-center gap-2 rounded-xl border border-gray-700 bg-gray-800/50 px-3 py-5 text-center text-white transition-colors hover:border-primary/50 hover:bg-gray-700/50"
             >
               <span aria-hidden="true" className="text-2xl">🎉</span>
-              <span className="font-semibold">Catering / Bufetes</span>
+              <span className="font-semibold text-sm">Catering</span>
             </button>
           </div>
         )}
