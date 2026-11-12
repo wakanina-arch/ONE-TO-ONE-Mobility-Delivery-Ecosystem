@@ -108,7 +108,7 @@ export function DailyMenuEditor({ merchantId }: DailyMenuEditorProps) {
       await supabase.from('daily_menus').update({ active: false }).eq('merchant_id', merchantId)
     }
 
-    const { error } = await supabase.from('daily_menus').insert({
+        const { error } = await supabase.from('daily_menus').insert({
       merchant_id: merchantId,
       title: tituloFinal,
       description: description.trim() || null,
@@ -118,6 +118,7 @@ export function DailyMenuEditor({ merchantId }: DailyMenuEditorProps) {
       valid_from: validFrom || null,
       valid_until: validUntil || null,
       active,
+      tipo: tipo, // <-- AQUÍ GUARDAMOS EL TIPO
     })
 
     setSaving(false)
