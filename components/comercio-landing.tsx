@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { ArrowLeft, Clock3, ShoppingCart, Star } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { useCartStore, type MenuItem } from '@/lib/store'
 import { ComercioInfo } from '@/components/ComercioInfo'
 import { createClient } from '@/lib/supabase/client'
 import {
@@ -35,6 +36,29 @@ export function ComercioLanding({
   const [horarios, setHorarios] = useState<MerchantSchedule[]>([])
   const [productos, setProductos] = useState<Product[]>([])
   const [menuDelDia, setMenuDelDia] = useState<any>(null)
+  const { addItem } = useCartStore()
+       const handlePedirAhora = () => {
+    if (menuDelDia) {
+      const item: MenuItem = {
+        id: `menu-${menuDelDia.id}`,
+        // Nombres que usa tu carrito (¡incluyendo 'image'!)
+        nombre: menuDelDia.title,
+        precio: Number(menuDelDia.offer_price),
+        image: menuDelDia.image_url, 
+        cantidad: 1,
+        // Compatibilidad extra por si el store lo requiere
+        name: menuDelDia.title,
+        price: Number(menuDelDia.offer_price),
+        image_url: menuDelDia.image_url,
+        quantity: 1,
+      } as any
+      
+      addItem(item, String(comercio.id))
+      onAbrirCarrito()
+    } else {
+      onVerMenu()
+    }
+  }
 
   useEffect(() => {
     let active = true
@@ -192,9 +216,9 @@ export function ComercioLanding({
                     />
                   </div>
                 )}
-                <Button
+                                 <Button
                   type="button"
-                  onClick={onVerMenu}
+                  onClick={handlePedirAhora}
                   className="w-full rounded-xl bg-amber-500 px-6 py-4 text-sm font-semibold text-black shadow-lg transition-all hover:scale-[1.02] hover:bg-amber-400 sm:w-full"
                 >
                   Pedir ahora
@@ -205,18 +229,19 @@ export function ComercioLanding({
         )}
 
         {/* 3. ACCESOS PRINCIPALES (TARJETAS) */}
-                        <section aria-label="Accesos principales" className="grid gap-4 sm:grid-cols-3 sm:grid-rows-2">
-          {/* Tarjeta Carta (Destacada) */}
+                         <section aria-label="Accesos principales" className="grid grid-cols-3 gap-3">
+          {/* Tarjeta Carta */}
           <button
             type="button"
             onClick={onVerMenu}
-            className="group relative flex flex-col justify-between overflow-hidden rounded-xl bg-gradient-to-br from-amber-400 to-amber-500 p-4 text-left text-black shadow-xl transition-all duration-500 hover:-translate-y-1 hover:shadow-2xl sm:col-span-2 sm:row-span-2"
+            className="group relative flex h-28 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-amber-400 to-amber-500 p-3 text-center text-black shadow-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-xl sm:h-32"
           >
-            <div className="absolute -right-8 -top-8 text-[140px] opacity-10 transition-transform duration-700 group-hover:scale-110 group-hover:rotate-6">🍔</div>
+            {/* Forzamos el icono a salirse de la caja con -right-4 -top-4 y z-0 */}
+            <div className="absolute -right-4 -top-4 z-0 text-6xl opacity-20 transition-transform duration-500 group-hover:scale-110 group-hover:rotate-12">📖</div>
             
-            <div className="relative z-10 mt-auto pt-10">
-             <h3 className="font-serif text-3xl font-semibold leading-tight sm:text-4xl">Ver Carta</h3>
-              <p className="mt-2 text-sm font-medium text-black/60">Descubre nuestros platos y bebidas.</p>
+            <div className="relative z-10 mt-4">
+              <h3 className="font-serif text-lg font-bold leading-tight sm:text-xl">Ver Carta</h3>
+              <p className="mt-1 text-[10px] font-medium text-black/70 sm:text-xs">Platos y bebidas</p>
             </div>
           </button>
 
@@ -224,12 +249,12 @@ export function ComercioLanding({
           <button
             type="button"
             onClick={onReservar}
-            className="group relative flex flex-col justify-between overflow-hidden rounded-xl border border-white/10 bg-white/[0.02] p-5 text-left transition-all duration-500 hover:-translate-y-1 hover:border-amber-400/30 hover:bg-white/[0.04] hover:shadow-xl"
+            className="group relative flex h-28 items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-white/[0.02] p-3 text-center transition-all duration-300 hover:-translate-y-1 hover:border-amber-400/30 hover:bg-white/[0.04] sm:h-32"
           >
-            <div className="absolute -right-4 -top-4 text-7xl opacity-[0.03] transition-transform duration-500 group-hover:-translate-y-2 group-hover:scale-110">📅</div>
-            <div className="relative z-10 mt-8">
-            <h3 className="font-serif text-xl font-semibold text-white">Reservas</h3>
-              <p className="mt-1 text-xs font-medium text-white/50">Visítanos o pide para llevar</p>
+            <div className="absolute -right-4 -top-4 z-0 text-6xl opacity-10 transition-transform duration-500 group-hover:scale-110 group-hover:rotate-12">📅</div>
+            <div className="relative z-10 mt-4">
+              <h3 className="font-serif text-lg font-semibold text-white sm:text-xl">Reservas</h3>
+              <p className="mt-1 text-[10px] font-medium text-white/50 sm:text-xs">Pide para llevar</p>
             </div>
           </button>
 
@@ -237,12 +262,12 @@ export function ComercioLanding({
           <button
             type="button"
             onClick={onCatering}
-            className="group relative flex flex-col justify-between overflow-hidden rounded-xl border border-white/10 bg-white/[0.02] p-5 text-left transition-all duration-500 hover:-translate-y-1 hover:border-amber-400/30 hover:bg-white/[0.04] hover:shadow-xl"
+            className="group relative flex h-28 items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-white/[0.02] p-3 text-center transition-all duration-300 hover:-translate-y-1 hover:border-amber-400/30 hover:bg-white/[0.04] sm:h-32"
           >
-            <div className="absolute -right-4 -top-4 text-7xl opacity-[0.03] transition-transform duration-500 group-hover:-translate-y-2 group-hover:scale-110">🍲</div>
-            <div className="relative z-10 mt-8">
-              <h3 className="font-serif text-xl font-semibold text-white">Catering</h3>
-              <p className="mt-1 text-xs font-medium text-white/50">Celebra con el sabor de casa</p>
+            <div className="absolute -right-4 -top-4 z-0 text-6xl opacity-10 transition-transform duration-500 group-hover:scale-110 group-hover:rotate-12">🍲</div>
+            <div className="relative z-10 mt-4">
+              <h3 className="font-serif text-lg font-semibold text-white sm:text-xl">Catering</h3>
+              <p className="mt-1 text-[10px] font-medium text-white/50 sm:text-xs">Bufetes</p>
             </div>
           </button>
         </section>
