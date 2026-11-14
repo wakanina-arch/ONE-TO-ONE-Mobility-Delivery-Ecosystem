@@ -8,12 +8,10 @@ import { ComercioInfo } from '@/components/ComercioInfo'
 import { createClient } from '@/lib/supabase/client'
 import {
   getMerchantSchedules,
-  getProductsByMerchant,
   getTodayScheduleSummary,
   isOpenNow,
   type Merchant,
   type MerchantSchedule,
-  type Product,
 } from '@/lib/supabase/merchants'
 
 interface ComercioLandingProps {
@@ -25,6 +23,17 @@ interface ComercioLandingProps {
   onAbrirCarrito: () => void
 }
 
+interface PublishedDailyMenu {
+  id: string
+  title: string
+  description: string | null
+  offer_price: number | null
+  image_url: string | null
+  tapiz: string | null
+  tipo?: 'menu' | 'especial' | 'promo' | null
+  products?: { price: number } | null
+}
+
 export function ComercioLanding({
   comercio,
   onVerMenu,
@@ -34,24 +43,23 @@ export function ComercioLanding({
   onAbrirCarrito,
 }: ComercioLandingProps) {
   const [horarios, setHorarios] = useState<MerchantSchedule[]>([])
-  const [productos, setProductos] = useState<Product[]>([])
-  const [menuDelDia, setMenuDelDia] = useState<any>(null)
+  const [menuDelDia, setMenuDelDia] = useState<PublishedDailyMenu | null>(null)
+  const tapizUrl = typeof menuDelDia?.tapiz === 'string' && /^https?:\/\//.test(menuDelDia.tapiz)
+    ? menuDelDia.tapiz
+    : null
   const { addItem } = useCartStore()
-       const handlePedirAhora = () => {
+  const handlePedirAhora = () => {
     if (menuDelDia) {
+      const precio = menuDelDia.offer_price ?? menuDelDia.products?.price ?? 0
       const item: MenuItem = {
         id: `menu-${menuDelDia.id}`,
-        // Nombres que usa tu carrito (¡incluyendo 'image'!)
         nombre: menuDelDia.title,
-        precio: Number(menuDelDia.offer_price),
-        image: menuDelDia.image_url, 
-        cantidad: 1,
-        // Compatibilidad extra por si el store lo requiere
-        name: menuDelDia.title,
-        price: Number(menuDelDia.offer_price),
-        image_url: menuDelDia.image_url,
-        quantity: 1,
-      } as any
+        descripcion: menuDelDia.description || '',
+        precio: Number(precio),
+        categoria: 'Menú del día',
+        imagen: menuDelDia.image_url || '',
+        disponible: true,
+      }
       
       addItem(item, String(comercio.id))
       onAbrirCarrito()
@@ -64,22 +72,18 @@ export function ComercioLanding({
     let active = true
 
     const cargarDatos = async () => {
-      const [horariosData, productosData] = await Promise.all([
-        getMerchantSchedules(comercio.id),
-        getProductsByMerchant(comercio.id),
-      ])
+      const horariosData = await getMerchantSchedules(comercio.id)
 
       const supabase = createClient()
       const { data: menuData } = await supabase
         .from('daily_menus')
-        .select('*')
+        .select('*, products(price)')
         .eq('merchant_id', comercio.id)
         .eq('active', true)
         .maybeSingle()
 
       if (active) {
         setHorarios(horariosData)
-        setProductos(productosData)
         setMenuDelDia(menuData)
       }
     }
@@ -148,20 +152,25 @@ export function ComercioLanding({
                 {comercio.description}
               </p>
             )}
-            <div className="mt-5 flex flex-wrap items-center justify-center gap-2.5 text-sm sm:justify-start">
-              <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3.5 py-1.5">
+                        <div className="mt-5 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-sm sm:justify-start">
+              {/* Estado */}
+              <span className="inline-flex items-center gap-1.5">
                 <span className={`h-1.5 w-1.5 rounded-full ${abierto ? 'bg-emerald-400' : 'bg-red-400'}`} />
                 <span className={`text-xs font-medium ${abierto ? 'text-emerald-300' : 'text-red-300'}`}>
-                  {abierto ? 'Abierto ahora' : 'Cerrado'}
+                  {abierto ? 'Abierto' : 'Cerrado'}
                 </span>
               </span>
-              <span className="inline-flex items-center gap-2 rounded-full border border-white/5 px-3.5 py-1.5 text-xs font-medium text-white/60">
+
+              {/* Horario */}
+              <span className="inline-flex items-center gap-1.5 text-xs font-medium text-white/60">
                 <Clock3 className="h-3.5 w-3.5 text-amber-400/80" />
                 {horarioHoy}
               </span>
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-white/5 px-3.5 py-1.5 text-xs font-medium text-white/70">
+
+              {/* Valoración */}
+              <span className="inline-flex items-center gap-1 text-xs font-medium text-white/70">
                 <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-                {typeof valoracion === 'number' && Number.isFinite(valoracion) ? valoracion.toFixed(1) : 'Sin valoraciones'}
+                {typeof valoracion === 'number' && Number.isFinite(valoracion) ? valoracion.toFixed(1) : 'Nuevo'}
               </span>
             </div>
           </div>
@@ -170,8 +179,16 @@ export function ComercioLanding({
         {/* 2. MENÚ DEL DÍA (PIZARRA DE CALLE) */}
         {menuDelDia && (
           <section className="group relative overflow-hidden rounded-3xl border border-white/10 bg-[#101112] shadow-xl transition-all duration-500 hover:border-amber-400/30 hover:shadow-amber-500/5">
-            
-            {menuDelDia.image_url && (
+            {tapizUrl ? (
+              <div className="absolute inset-0 overflow-hidden">
+                <img
+                  src={tapizUrl}
+                  alt="Tapiz de fondo del plato"
+                  aria-hidden="true"
+                  className="h-full w-full object-cover"
+                />
+              </div>
+            ) : menuDelDia.image_url ? (
               <div className="absolute inset-0 overflow-hidden">
                 <img
                   src={menuDelDia.image_url}
@@ -181,22 +198,23 @@ export function ComercioLanding({
                 />
                 <div className="absolute inset-0 bg-gradient-to-r from-[#0b0d0e] via-[#0b0d0e]/90 to-transparent" />
               </div>
-            )}
-            
-            <div className="relative z-10 flex flex-col gap-6 p-6 sm:flex-row sm:items-center sm:justify-between sm:p-8">
-                            <div className="flex-1 text-center sm:text-left">
+            ) : null}
+
+            <div className="relative z-10 flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+              <div className="flex-1 text-center sm:text-left">
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-400/10 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-amber-400">
-                  {menuDelDia.tipo === 'especial' ? '✨ Especial para hoy' : 
-                   menuDelDia.tipo === 'promo' ? '🏷️ Promoción del día' : 
-                   '🔥 Menú de hoy'}
+                  {menuDelDia.tipo === 'especial'
+                    ? '✨ Especial para hoy'
+                    : menuDelDia.tipo === 'promo'
+                      ? '🏷️ Promoción del día'
+                      : '🔥 Menú de hoy'}
                 </span>
-                
-                {/* Nombre del plato (Ahora es el subtítulo con presencia) */}
+
                 <h2 className="mt-4 font-serif text-2xl font-semibold text-white sm:text-4xl">
                   {menuDelDia.title}
                 </h2>
 
-                                {menuDelDia.description && (
+                {menuDelDia.description && (
                   <p className="mx-auto mt-3 max-w-sm text-sm leading-relaxed text-white/60 sm:mx-0">
                     {menuDelDia.description}
                   </p>
@@ -206,17 +224,17 @@ export function ComercioLanding({
                 </p>
               </div>
 
-              <div className="flex w-full flex-col items-center gap-4 sm:w-auto sm:items-end shrink-0">
+              <div className="flex w-full shrink-0 flex-col items-center gap-4 sm:w-auto sm:items-end">
                 {menuDelDia.image_url && (
-                  <div className="relative h-48 w-48 overflow-hidden rounded-2xl border border-white/10 shadow-xl sm:h-56 sm:w-56">
+                  <div className="relative h-[282px] w-[282px] overflow-hidden rounded-2xl border border-white/10 bg-transparent shadow-xl sm:h-[322px] sm:w-[322px]">
                     <img
                       src={menuDelDia.image_url}
                       alt={menuDelDia.title}
-                      className="h-full w-full object-cover"
+                      className="h-full w-full object-contain"
                     />
                   </div>
                 )}
-                                 <Button
+                <Button
                   type="button"
                   onClick={handlePedirAhora}
                   className="w-full rounded-xl bg-amber-500 px-6 py-4 text-sm font-semibold text-black shadow-lg transition-all hover:scale-[1.02] hover:bg-amber-400 sm:w-full"
