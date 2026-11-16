@@ -288,7 +288,7 @@ export function DailyMenuEditor({ merchantId }: DailyMenuEditorProps) {
       )}
 
       {showForm && (
-        <Card className="w-full min-w-0 gap-3 p-4 bg-gray-800/50 border-gray-700">
+               <Card className="w-full min-w-0 gap-3 overflow-hidden p-4 bg-gray-800/50 border-gray-700">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-bold text-white">
               {editingId ? 'Editar menú publicado' : 'Nuevo menú'}
