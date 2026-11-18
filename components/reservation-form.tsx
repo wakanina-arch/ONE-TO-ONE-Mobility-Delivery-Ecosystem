@@ -13,14 +13,14 @@ interface ReservationFormProps {
   onBack: () => void
 }
 
-interface ReservationDetails {
+interface ReservationFormValues {
   nombre: string
+  telefono: string
   fecha: string
   hora: string
-  comensales: number
+  comensales: string
   menu: string
-  mesa: number
-  modo: 'mesa' | 'pedido' | 'recoger' // NUEVO CAMPO
+  notas: string
 }
 
 interface ReservationDetails {
@@ -30,6 +30,7 @@ interface ReservationDetails {
   comensales: number
   menu: string
   mesa: number
+  modo?: 'mesa' | 'pedido' | 'recoger'
 }
 
 function getLocalDateString(date: Date) {
