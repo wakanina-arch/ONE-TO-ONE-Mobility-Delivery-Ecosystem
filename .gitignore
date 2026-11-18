@@ -43,3 +43,6 @@ next-env.d.ts
 # Backups manuales
 *.backup
 *.bak
+
+# Carpeta temporal de imágenes de catálogo (no se sube a Git)
+/imagenes/
