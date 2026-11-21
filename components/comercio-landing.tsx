@@ -171,21 +171,24 @@ export function ComercioLanding({
         </section>
 
         {/* 2. MENÚ DEL DÍA (Sin tapiz, plato + texto debajo) */}
-        {menuDelDia && (
-          <div className="flex flex-col items-center gap-4 border-t border-white/5 pt-6">
-              {/* Plato cuadrado */}
-              {menuDelDia.image_url && (
-                <div className="relative aspect-square w-full max-w-[320px] overflow-hidden rounded-3xl shadow-2xl">
-                  <img
-                    src={menuDelDia.image_url}
-                    alt={menuDelDia.title}
-                    className="h-full w-full object-cover"
-                  />
-                </div>
-              )}
+               {menuDelDia && (
+          <div className="flex flex-col items-center gap-6 py-4">
+            {/* Imagen centrada (sin contenedor) */}
+            {menuDelDia.image_url && (
+              <div className="relative aspect-square w-full max-w-[320px] overflow-hidden rounded-3xl shadow-2xl">
+                <img
+                  src={menuDelDia.image_url}
+                  alt={menuDelDia.title}
+                  className="h-full w-full object-cover"
+                />
+              </div>
+            )}
 
-              {/* Texto debajo del plato */}
-              <div className="w-full text-center">
+            {/* Texto en dos columnas (debajo de la imagen) */}
+            <div className="grid w-full max-w-2xl grid-cols-1 gap-6 sm:grid-cols-2">
+              
+              {/* Columna Izquierda */}
+              <div className="flex flex-col items-center text-center sm:items-start sm:text-left">
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-400 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-black">
                   {menuDelDia.tipo === 'especial' ? '✨ Especial' :
                    menuDelDia.tipo === 'promo' ? '🏷️ Promo' :
@@ -195,23 +198,27 @@ export function ComercioLanding({
                   {menuDelDia.title}
                 </h2>
                 {menuDelDia.description && (
-                  <p className="mx-auto mt-2 max-w-lg text-sm text-white/60">
+                  <p className="mt-2 text-sm text-white/60">
                     {menuDelDia.description}
                   </p>
                 )}
-                <p className="mt-4 text-3xl font-bold text-amber-300">
+              </div>
+
+              {/* Columna Derecha (con pasamanos invisible) */}
+              <div className="flex flex-col items-center justify-center gap-3 sm:border-l sm:border-white/10 sm:pl-6 sm:items-end">
+                <p className="text-3xl font-bold text-amber-300">
                   ${Number(menuDelDia.offer_price).toFixed(2)}
                 </p>
                 <Button
                   type="button"
                   onClick={handlePedirAhora}
-                  className="mt-4 w-full max-w-xs rounded-xl bg-amber-500 px-8 py-4 text-sm font-bold text-black shadow-lg transition-all hover:scale-[1.02] hover:bg-amber-400"
+                  className="w-full rounded-xl bg-amber-500 px-8 py-4 text-sm font-bold text-black shadow-lg transition-all hover:scale-[1.02] hover:bg-amber-400 sm:w-auto"
                 >
                   Pedir ahora
                 </Button>
               </div>
             </div>
-         
+          </div>
         )}
 
         {/* 3. INFORMACIÓN DEL COMERCIO (con logo arriba) */}
@@ -253,18 +260,7 @@ export function ComercioLanding({
         </section>
       </div>
 
-      {/* 4. BOTÓN FLOTANTE DEL CARRITO (si hay ítems) */}
-      {itemCount > 0 && (
-        <button
-          type="button"
-          onClick={onAbrirCarrito}
-          className="fixed bottom-6 right-6 z-40 flex items-center gap-2 rounded-full bg-amber-500 px-5 py-3 text-sm font-bold text-black shadow-2xl transition-all hover:scale-105 hover:bg-amber-400"
-          aria-label={`Ver carrito (${itemCount} ítems)`}
-        >
-          <ShoppingCart className="h-5 w-5" />
-          Ver carrito ({itemCount})
-        </button>
-      )}
+      
     </main>
   )
 }

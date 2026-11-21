@@ -134,32 +134,47 @@ export function ReservationForm({ comercio, onBack }: ReservationFormProps) {
 
               {/* Cabecera con Carrusel Integrado */}
               <div className="text-center">
-                <p className="text-[10px] font-bold uppercase tracking-[0.4em] text-[#8b1e3f]">
-                  {comercio.name}
-                </p>
+                <div className="min-w-0 flex-1 flex items-center justify-center">
+  <svg viewBox="0 -30 400 80" className="h-12 w-full max-w-[360px] -mb-2">
+  <defs>
+    <path
+      id="curva-header"
+      d="M 10,45 Q 200,-20 390,45"
+      fill="transparent"
+    />
+  </defs>
+
+  ...
+    <text className="fill-[#8b1e3f] font-serif text-3xl font-bold sm:text-4xl">
+  <textPath href="#curva-header" startOffset="50%" textAnchor="middle">
+    {comercio.name}
+  </textPath>
+</text>
+  </svg>
+</div>
                 
                 {/* Título que rota */}
-                <div className="relative mt-2 h-14 overflow-hidden sm:h-16">
-                  <div 
-                    className="flex transition-transform duration-500 ease-in-out"
-                    style={{ transform: `translateX(-${modo === 'mesa' ? 0 : modo === 'pedido' ? 100 : 200}%)` }}
-                  >
-                    <h1 className="w-full shrink-0 font-serif text-4xl font-bold text-[#1a1a1a] sm:text-5xl">
-                      Reserva tu mesa
-                    </h1>
-                    <h1 className="w-full shrink-0 font-serif text-4xl font-bold text-[#1a1a1a] sm:text-5xl">
-                      Pedido a recoger
-                    </h1>
-                    <h1 className="w-full shrink-0 font-serif text-4xl font-bold text-[#1a1a1a] sm:text-5xl">
-                      Envío a domicilio
-                    </h1>
-                  </div>
-                </div>
+                <div className="relative mt-2 h-12 overflow-hidden sm:h-14">
+  <div 
+    className="flex transition-transform duration-500 ease-in-out"
+    style={{ transform: `translateX(-${modo === 'mesa' ? 0 : modo === 'pedido' ? 100 : 200}%)` }}
+  >
+    <h1 className="w-full shrink-0 font-serif text-4xl font-bold text-[#1a1a1a] sm:text-5xl">
+      Reserva tu mesa
+    </h1>
+    <h1 className="w-full shrink-0 font-serif text-3xl font-bold text-[#1a1a1a] sm:text-4xl flex items-center justify-center">
+      Pedido a recoger
+    </h1>
+    <h1 className="w-full shrink-0 font-serif text-3xl font-bold text-[#1a1a1a] sm:text-4xl flex items-center justify-center">
+      Envío a domicilio
+    </h1>
+  </div>
+</div>
 
                 <div className="mx-auto mt-3 h-0.5 w-16 bg-[#2d6a4f]" />
                 
                 {/* Subtítulo que rota */}
-                <div className="relative mt-3 h-5 overflow-hidden">
+                <div className="relative mt-1 h-5 overflow-hidden">
                   <div 
                     className="flex transition-transform duration-500 ease-in-out"
                     style={{ transform: `translateX(-${modo === 'mesa' ? 0 : modo === 'pedido' ? 100 : 200}%)` }}
