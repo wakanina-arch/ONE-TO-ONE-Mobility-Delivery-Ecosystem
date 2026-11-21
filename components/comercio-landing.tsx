@@ -164,7 +164,7 @@ export function ComercioLanding({
           >
             <div className="absolute -right-4 -top-4 z-0 text-6xl opacity-10 transition-transform duration-500 group-hover:scale-110 group-hover:rotate-12">🍲</div>
             <div className="relative z-10 mt-4">
-              <h3 className="font-serif text-base font-semibold text-white sm:text-lg">Reservas</h3>
+              <h3 className="font-serif text-base font-semibold text-white sm:text-lg">Catering</h3>
               <p className="mt-1 text-[10px] font-medium text-white/50 sm:text-xs">Bufetes</p>
             </div>
           </button>

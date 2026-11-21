@@ -44,24 +44,18 @@ export function ReservationForm({ comercio, onBack }: ReservationFormProps) {
   const [reservation, setReservation] = useState<ReservationDetails | null>(null)
   const [acceptedPolicy, setAcceptedPolicy] = useState(false)
       const [modo, setModo] = useState<'mesa' | 'pedido' | 'recoger'>('mesa')
-    const [pausado, setPausado] = useState(false)
+    
   
   useEffect(() => {
-    if (pausado) return
-    const intervalo = setInterval(() => {
-      setModo((actual) => {
-        if (actual === 'mesa') return 'pedido'
-        if (actual === 'pedido') return 'recoger'
-        return 'mesa'
-      })
-    }, 4000)
-    return () => clearInterval(intervalo)
-  }, [pausado])
-
-  const handleModoManual = (nuevoModo: 'mesa' | 'pedido' | 'recoger') => {
-    setModo(nuevoModo)
-    setPausado(true) // Se pausa para siempre hasta que el usuario recargue
-  }
+  const intervalo = setInterval(() => {
+    setModo((actual) => {
+      if (actual === 'mesa') return 'pedido'
+      if (actual === 'pedido') return 'recoger'
+      return 'mesa'
+    })
+  }, 6000) // 6 segundos de tranquilidad
+  return () => clearInterval(intervalo)
+}, [])
   const [form, setForm] = useState<ReservationFormValues>({
     nombre: '',
     telefono: '',
@@ -154,19 +148,19 @@ export function ReservationForm({ comercio, onBack }: ReservationFormProps) {
 </div>
                 
                 {/* Título que rota */}
-                <div className="relative mt-2 h-12 overflow-hidden sm:h-14">
+                <div className="relative mt-2 h-14 overflow-hidden sm:h-16">
   <div 
     className="flex transition-transform duration-500 ease-in-out"
     style={{ transform: `translateX(-${modo === 'mesa' ? 0 : modo === 'pedido' ? 100 : 200}%)` }}
   >
-    <h1 className="w-full shrink-0 font-serif text-4xl font-bold text-[#1a1a1a] sm:text-5xl">
+    <h1 className="w-full shrink-0 font-serif text-4xl font-bold text-[#1a1a1a] sm:text-5xl flex items-center justify-center">
+      Sabor de barrio
+    </h1>
+    <h1 className="w-full shrink-0 font-serif text-4xl font-bold text-[#1a1a1a] sm:text-5xl flex items-center justify-center">
+      Momentos únicos
+    </h1>
+    <h1 className="w-full shrink-0 font-serif text-4xl font-bold text-[#1a1a1a] sm:text-5xl flex items-center justify-center">
       Reserva tu mesa
-    </h1>
-    <h1 className="w-full shrink-0 font-serif text-3xl font-bold text-[#1a1a1a] sm:text-4xl flex items-center justify-center">
-      Pedido a recoger
-    </h1>
-    <h1 className="w-full shrink-0 font-serif text-3xl font-bold text-[#1a1a1a] sm:text-4xl flex items-center justify-center">
-      Envío a domicilio
     </h1>
   </div>
 </div>
@@ -174,47 +168,39 @@ export function ReservationForm({ comercio, onBack }: ReservationFormProps) {
                 <div className="mx-auto mt-3 h-0.5 w-16 bg-[#2d6a4f]" />
                 
                 {/* Subtítulo que rota */}
-                <div className="relative mt-1 h-5 overflow-hidden">
-                  <div 
-                    className="flex transition-transform duration-500 ease-in-out"
-                    style={{ transform: `translateX(-${modo === 'mesa' ? 0 : modo === 'pedido' ? 100 : 200}%)` }}
-                  >
-                    <p className="w-full shrink-0 font-serif text-sm italic text-[#1a1a1a]/70">
-                      "Tu mesa te espera, con el sabor de casa."
-                    </p>
-                    <p className="w-full shrink-0 font-serif text-sm italic text-[#1a1a1a]/70">
-                      "Tu comida lista a la hora que elijas."
-                    </p>
-                    <p className="w-full shrink-0 font-serif text-sm italic text-[#1a1a1a]/70">
-                      "Te lo enviamos a casa."
-                    </p>
-                  </div>
-                </div>
+                <div className="relative mt-3 h-5 overflow-hidden">
+  <div 
+    className="flex transition-transform duration-500 ease-in-out"
+    style={{ transform: `translateX(-${modo === 'mesa' ? 0 : modo === 'pedido' ? 100 : 200}%)` }}
+  >
+    <p className="w-full shrink-0 font-serif text-sm italic text-[#1a1a1a]/70">
+      "El tiempo se detiene cuando el sabor es bueno."
+    </p>
+    <p className="w-full shrink-0 font-serif text-sm italic text-[#1a1a1a]/70">
+      "Cada bocado una experiencia que recordarás."
+    </p>
+    <p className="w-full shrink-0 font-serif text-sm italic text-[#1a1a1a]/70">
+      "Tu mesa te espera, con el sabor de casa."
+    </p>
+  </div>
+</div>
 
-                {/* Puntos indicadores del carrusel */}
-                <div className="mt-4 flex justify-center gap-1.5">
-                  {['mesa', 'pedido', 'recoger'].map((key) => (
-                    <button
-  key={key}
-  type="button"
-  onClick={() => handleModoManual(key as 'mesa' | 'pedido' | 'recoger')}
-  className={`h-1.5 rounded-full transition-all duration-300 ${
-    modo === key ? 'w-6 bg-[#8b1e3f]' : 'w-1.5 bg-[#1a1a1a]/20 hover:bg-[#1a1a1a]/40'
-  }`}
-/>
-                  ))}
-                </div>
+                              {/* Puntos indicadores del carrusel (solo decorativos) */}
+              <div className="mt-4 flex justify-center gap-1.5">
+                {['mesa', 'pedido', 'recoger'].map((key) => (
+                  <div
+                    key={key}
+                    className={`h-1.5 rounded-full transition-all duration-300 ${
+                      modo === key ? 'w-6 bg-[#8b1e3f]' : 'w-1.5 bg-[#1a1a1a]/20'
+                    }`}
+                  />
+                ))}
+              </div>
               </div>
 
-              {/* Aviso de cortesía dinámico */}
+              {/* Aviso de cortesía (siempre de reserva de mesa) */}
               <div className="mt-5 rounded-lg border border-[#eab308]/40 bg-[#eab308]/15 p-3 text-center text-xs text-[#1a1a1a]/80">
-                {modo === 'mesa' ? (
-                  <>Te esperamos <strong className="text-[#8b1e3f]">15 minutos</strong>. Pasado ese tiempo, la mesa se libera para otro comensal.</>
-                ) : modo === 'pedido' ? (
-                  <>Tu pedido estará listo a la hora indicada. <strong className="text-[#8b1e3f]">Te avisaremos al teléfono</strong>.</>
-                ) : (
-                  <>Te lo enviamos a casa. <strong className="text-[#8b1e3f]">Sin filas, sin esperas</strong>.</>
-                )}
+                Te esperamos <strong className="text-[#8b1e3f]">15 minutos</strong>. Pasado ese tiempo, la mesa se libera para otro comensal.
               </div>
 
               {/* Formulario */}
@@ -332,7 +318,7 @@ export function ReservationForm({ comercio, onBack }: ReservationFormProps) {
                   type="submit"
                   className="w-full rounded-xl bg-[#8b1e3f] py-4 text-sm font-bold uppercase tracking-widest text-white shadow-lg transition-all hover:bg-[#a82450]"
                 >
-                  🔱 Confirmar reserva
+                  🔱 Confirmar reserva de mesa
                 </Button>
               </form>
             </div>
