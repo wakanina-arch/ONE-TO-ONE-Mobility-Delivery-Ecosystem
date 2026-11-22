@@ -1,10 +1,11 @@
 import { createClient } from './client'
 
 export interface OrderItem {
-  product_id: string
+  product_id: string | null
   quantity: number
   price: number
 }
+
 
 export interface CreateOrderInput {
   customer_id: string
@@ -22,11 +23,28 @@ export interface CreateOrderInput {
 // Crear un nuevo pedido
 export async function createOrder(orderData: CreateOrderInput) {
   const supabase = createClient()
-  
+
+    // 0. Extraer IDs candidatos (excluyendo null y 'menu-')
+  const candidateIds = orderData.items
+    .map(i => i.product_id)
+    .filter((id): id is string => typeof id === 'string' && !id.startsWith('menu-'))
+
+
+  // Consultar cuáles de esos IDs existen realmente en la tabla 'products'
+  let validIdSet = new Set<string>()
+  if (candidateIds.length > 0) {
+    const { data: validProducts } = await supabase
+      .from('products')
+      .select('id')
+      .in('id', candidateIds)
+
+    validIdSet = new Set(validProducts?.map(p => p.id) || [])
+  }
+
   // 1. Insertar el pedido principal
   const { data: order, error: orderError } = await supabase
     .from('orders')
-        .insert({
+    .insert({
       customer_id: orderData.customer_id,
       merchant_id: orderData.merchant_id,
       total: orderData.total,
@@ -40,34 +58,32 @@ export async function createOrder(orderData: CreateOrderInput) {
     })
     .select()
     .single()
-  
-       if (orderError) {
-    console.error('❌ Error creating order:')
-    console.error('  code:', orderError.code)
-    console.error('  message:', orderError.message)
-    console.error('  details:', orderError.details)
-    console.error('  hint:', orderError.hint)
-    console.error('  full:', JSON.stringify(orderError, null, 2))
-    throw orderError
+
+  if (orderError) {
+    console.error('❌ Error creating order:', orderError.message)
+    throw new Error(orderError.message)
   }
-  
+
   // 2. Insertar los items del pedido
-  const orderItems = orderData.items.map(item => ({
+    const orderItems = orderData.items.map(item => ({
     order_id: order.id,
-    product_id: item.product_id,
+    product_id: item.product_id && validIdSet.has(item.product_id) ? item.product_id : null,
     quantity: item.quantity,
     price: item.price
   }))
-  
+
+
   const { error: itemsError } = await supabase
     .from('order_items')
     .insert(orderItems)
-  
+
   if (itemsError) {
-    console.error('Error creating order items:', itemsError)
-    throw itemsError
+    // Rollback manual: eliminar el pedido padre si fallan los items
+    await supabase.from('orders').delete().eq('id', order.id)
+    console.error('❌ Error creating order items:', itemsError.message)
+    throw new Error(itemsError.message)
   }
-  
+
   return order
 }
 
@@ -104,6 +120,7 @@ export async function updateOrderStatus(orderId: string, status: string) {
   
   if (error) throw error
 }
+
 // Garantiza que hay un usuario logueado (anónimo si es necesario)
 export async function ensureUser(): Promise<string> {
   const supabase = createClient()

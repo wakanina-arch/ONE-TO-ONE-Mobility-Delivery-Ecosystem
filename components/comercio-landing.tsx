@@ -44,8 +44,7 @@ export function ComercioLanding({
 }: ComercioLandingProps) {
   const [horarios, setHorarios] = useState<MerchantSchedule[]>([])
   const [menuDelDia, setMenuDelDia] = useState<PublishedDailyMenu | null>(null)
-  const { addItem, getItemCount } = useCartStore()
-  const itemCount = getItemCount()
+  const { addItem } = useCartStore()
 
   useEffect(() => {
     let active = true
@@ -82,14 +81,14 @@ export function ComercioLanding({
     if (menuDelDia) {
       const precio = menuDelDia.offer_price ?? menuDelDia.products?.price ?? 0
       const item: MenuItem = {
-        id: `menu-${menuDelDia.id}`,
-        nombre: menuDelDia.title,
-        descripcion: menuDelDia.description || '',
-        precio: Number(precio),
-        categoria: 'Menú del día',
-        imagen: menuDelDia.image_url || '',
-        disponible: true,
-      }
+  id: `menu-${menuDelDia.id}`, // Debe tener el prefijo
+  nombre: menuDelDia.title,
+  descripcion: menuDelDia.description || '',
+  precio: Number(precio),
+  categoria: 'Menú del día',
+  imagen: menuDelDia.image_url || '',
+  disponible: true,
+}
       addItem(item, String(comercio.id))
       onAbrirCarrito()
     } else {

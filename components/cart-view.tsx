@@ -116,11 +116,18 @@ await supabase
             const orderCreado = await createOrderSupabase({
         customer_id: customerId,
         merchant_id: comercio.id,
-        items: items.map(item => ({
-          product_id: item.id,
-          quantity: item.cantidad,
-          price: item.precio
-        })),
+                        items: items.map(item => {
+          console.log('🔍 Item del carrito:', item)
+          console.log('🔍 id:', item.id)
+          console.log('🔍 ¿Empieza con menu-?', item.id?.startsWith('menu-'))
+          const productId = item.id?.startsWith('menu-') ? null : item.id
+          console.log('🔍 product_id a enviar:', productId)
+          return {
+            product_id: productId,
+            quantity: item.cantidad,
+            price: item.precio
+          }
+        }),
         total: totalFinal,
         delivery_address: form.tipoEntrega === 'domicilio' ? form.direccion : undefined,
         payment_method: form.metodoPago,
