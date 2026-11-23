@@ -148,7 +148,6 @@ export function PanelAccessModal({ open, onClose, onSuccess }: PanelAccessModalP
       const sessionName = type === 'merchant'
         ? merchants.find((m) => m.id === id)?.name || ''
         : riders.find((r) => r.id === id)?.name || ''
-
       grantPanelSession(type, id, sessionName)
 
       setPassword('')

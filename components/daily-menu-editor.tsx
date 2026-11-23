@@ -17,7 +17,6 @@ interface DailyMenu {
   description: string | null
   offer_price: number | null
   image_url: string | null
-  tapiz: string | null
   valid_from: string | null
   valid_until: string | null
   active: boolean
@@ -35,14 +34,12 @@ export function DailyMenuEditor({ merchantId }: DailyMenuEditorProps) {
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [uploading, setUploading] = useState<'dish' | 'tapiz' | null>(null)
+  const [uploading, setUploading] = useState(false)
 
-  // Formulario
   const [tipo, setTipo] = useState<MenuType>('menu')
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [offerPrice, setOfferPrice] = useState('')
-  const [tapiz, setTapiz] = useState('')
   const [validFrom, setValidFrom] = useState('')
   const [validUntil, setValidUntil] = useState('')
   const [active, setActive] = useState(true)
@@ -51,7 +48,6 @@ export function DailyMenuEditor({ merchantId }: DailyMenuEditorProps) {
 
   const consultarMenus = useCallback(async () => {
     const supabase = createClient()
-
     return supabase
       .from('daily_menus')
       .select('*, products(name, price)')
@@ -84,7 +80,6 @@ export function DailyMenuEditor({ merchantId }: DailyMenuEditorProps) {
       }
       setLoading(false)
     }
-
     void cargarInicial()
     return () => {
       active = false
@@ -97,27 +92,27 @@ export function DailyMenuEditor({ merchantId }: DailyMenuEditorProps) {
     setTitle('')
     setDescription('')
     setOfferPrice('')
-    setTapiz('')
     setValidFrom('')
     setValidUntil('')
     setActive(true)
     setImageUrl('')
     setShowForm(false)
   }
+
   const iniciarEdicion = (menu: DailyMenu) => {
     setEditingId(menu.id)
     setTipo(menu.tipo || 'menu')
     setTitle(menu.title)
     setDescription(menu.description || '')
     setOfferPrice(menu.offer_price == null ? '' : String(menu.offer_price))
-    setTapiz(menu.tapiz || '')
     setValidFrom(menu.valid_from || '')
     setValidUntil(menu.valid_until || '')
     setActive(menu.active)
     setImageUrl(menu.image_url || '')
     setShowForm(true)
   }
-  const subirImagen = async (file: File, target: 'dish' | 'tapiz') => {
+
+  const subirImagen = async (file: File) => {
     if (!file.type.startsWith('image/')) {
       alert('Selecciona un archivo de imagen válido.')
       return
@@ -127,11 +122,11 @@ export function DailyMenuEditor({ merchantId }: DailyMenuEditorProps) {
       return
     }
 
-    setUploading(target)
+    setUploading(true)
     try {
       const supabase = createClient()
       const extension = file.name.split('.').pop()?.replace(/[^a-zA-Z0-9]/g, '') || 'img'
-      const filePath = `daily-menu-${merchantId}-${target}-${crypto.randomUUID()}.${extension}`
+      const filePath = `daily-menu-${merchantId}-${crypto.randomUUID()}.${extension}`
       const { error } = await supabase.storage
         .from('products')
         .upload(filePath, file, { contentType: file.type })
@@ -143,16 +138,12 @@ export function DailyMenuEditor({ merchantId }: DailyMenuEditorProps) {
       }
 
       const { data } = supabase.storage.from('products').getPublicUrl(filePath)
-      if (target === 'dish') {
-        setImageUrl(data.publicUrl)
-      } else {
-        setTapiz(data.publicUrl)
-      }
+      setImageUrl(data.publicUrl)
     } catch (error) {
       console.error('Error subiendo imagen:', error)
       alert('No se pudo subir la imagen. Inténtalo de nuevo.')
     } finally {
-      setUploading(null)
+      setUploading(false)
     }
   }
 
@@ -196,7 +187,6 @@ export function DailyMenuEditor({ merchantId }: DailyMenuEditorProps) {
       title: tituloFinal,
       description: description.trim() || null,
       offer_price: parsedPrice,
-      tapiz: tapiz || null,
       image_url: imageUrl,
       valid_from: validFrom || null,
       valid_until: validUntil || null,
@@ -280,15 +270,15 @@ export function DailyMenuEditor({ merchantId }: DailyMenuEditorProps) {
     <div className="w-full min-w-0 space-y-3">
       {!showForm && (
         <Button
-          onClick={() => setShowForm(true)}
-          className="w-full bg-olive-600 hover:bg-olive-700 text-white text-sm"
-        >
+  onClick={() => setShowForm(true)}
+  className="w-full bg-olive-600 hover:bg-olive-700 text-white text-xs sm:text-sm py-2 sm:py-2.5"
+>
           <Plus className="h-4 w-4 mr-1" /> Crear nuevo menú del día
         </Button>
       )}
 
       {showForm && (
-               <Card className="w-full min-w-0 gap-3 overflow-hidden p-4 bg-gray-800/50 border-gray-700">
+        <Card className="w-full min-w-0 gap-3 overflow-hidden p-3 sm:p-4 bg-gray-800/50 border-gray-700 space-y-2.5 sm:space-y-3">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-bold text-white">
               {editingId ? 'Editar menú publicado' : 'Nuevo menú'}
@@ -299,12 +289,12 @@ export function DailyMenuEditor({ merchantId }: DailyMenuEditorProps) {
           </div>
 
           {/* Tipo */}
-          <div>
+          <div className="w-full">
             <label className="text-[10px] font-medium text-gray-400">Tipo</label>
             <select
               value={tipo}
               onChange={(e) => setTipo(e.target.value as MenuType)}
-              className="mt-1 h-9 w-full min-w-0 rounded border border-gray-700 bg-gray-800/50 px-3 text-sm text-white sm:max-w-xs"
+              className="mt-1 h-9 w-full max-w-xs rounded border border-gray-700 bg-gray-800/50 px-3 text-sm text-white"
             >
               <option value="menu">Menú del día</option>
               <option value="especial">Plato especial</option>
@@ -312,19 +302,19 @@ export function DailyMenuEditor({ merchantId }: DailyMenuEditorProps) {
             </select>
           </div>
 
-          {/* Título del menú */}
-          <div className="w-full min-w-0">
+          {/* Título */}
+          <div className="w-full">
             <label className="text-[10px] font-medium text-gray-400">Nombre del menú *</label>
             <Input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Ej: Encebollado y Seco"
-              className="mt-0.5 h-9 w-full min-w-0 text-sm bg-gray-800/50 border-gray-700 text-white"
+              className="mt-0.5 h-8 sm:h-9 w-full min-w-0 text-sm bg-gray-800/50 border-gray-700 text-white"
             />
           </div>
 
-          {/* Foto del menú */}
-          <div>
+          {/* Foto */}
+          <div className="w-full">
             <label className="text-[10px] font-medium text-gray-400">Foto del menú *</label>
             {imageUrl ? (
               <div className="mt-1 flex items-start gap-4">
@@ -346,16 +336,16 @@ export function DailyMenuEditor({ merchantId }: DailyMenuEditorProps) {
                   type="file"
                   accept="image/*"
                   className="hidden"
-                  disabled={uploading !== null}
+                  disabled={uploading}
                   onChange={(event) => {
                     const file = event.currentTarget.files?.[0]
                     event.currentTarget.value = ''
-                    if (file) void subirImagen(file, 'dish')
+                    if (file) void subirImagen(file)
                   }}
                 />
                 <Camera className="h-5 w-5 mb-1 text-gray-400" />
                 <span className="text-[9px] text-gray-400">
-                  {uploading === 'dish' ? 'Subiendo foto...' : 'Seleccionar foto del plato'}
+                  {uploading ? 'Subiendo foto...' : 'Seleccionar foto del plato'}
                 </span>
                 <span className="text-[8px] text-gray-500">JPG, PNG · Máx 2MB</span>
               </label>
@@ -363,7 +353,7 @@ export function DailyMenuEditor({ merchantId }: DailyMenuEditorProps) {
           </div>
 
           {/* Descripción */}
-          <div>
+          <div className="w-full">
             <label className="text-[10px] font-medium text-gray-400">Descripción (opcional)</label>
             <Textarea
               value={description}
@@ -374,8 +364,8 @@ export function DailyMenuEditor({ merchantId }: DailyMenuEditorProps) {
             />
           </div>
 
-          {/* Precio oferta */}
-          <div className="w-full min-w-0">
+          {/* Precio */}
+          <div className="w-full">
             <label className="text-[10px] font-medium text-gray-400">Precio de oferta ($)</label>
             <Input
               type="number"
@@ -384,75 +374,28 @@ export function DailyMenuEditor({ merchantId }: DailyMenuEditorProps) {
               value={offerPrice}
               onChange={(e) => setOfferPrice(e.target.value)}
               placeholder="0.00"
-              className="mt-0.5 h-9 w-full min-w-0 text-sm bg-gray-800/50 border-gray-700 text-white"
+              className="mt-0.5 h-8 sm:h-9 w-full min-w-0 text-sm bg-gray-800/50 border-gray-700 text-white"
             />
           </div>
 
-          {/* Tapiz de fondo */}
-          <div>
-            <label className="text-[10px] font-medium text-gray-400">Imagen de tapiz (opcional)</label>
-            <p className="mt-0.5 text-[9px] leading-relaxed text-gray-500">
-              Aparecerá detrás de la foto del plato. Si no eliges una, se usará la foto del plato desenfocada.
-            </p>
-            {tapiz?.startsWith('http') ? (
-              <div className="mt-2 flex items-start gap-3">
-                <div className="h-20 w-28 overflow-hidden rounded-lg border border-gray-700 bg-gray-800">
-                  <img src={tapiz} alt="Vista previa del tapiz" className="h-full w-full object-cover" />
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setTapiz('')}
-                  aria-label="Quitar imagen de tapiz"
-                  className="mt-1 rounded-full bg-red-500 p-1 text-white hover:bg-red-600"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              </div>
-            ) : (
-              <label className="mt-1 flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-600 bg-gray-800/30 py-3 transition-colors hover:border-olive-500">
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  disabled={uploading !== null}
-                  onChange={(event) => {
-                    const file = event.currentTarget.files?.[0]
-                    event.currentTarget.value = ''
-                    if (file) void subirImagen(file, 'tapiz')
-                  }}
-                />
-                <Camera className="mb-1 h-5 w-5 text-gray-400" />
-                <span className="text-[9px] text-gray-400">
-                  {uploading === 'tapiz' ? 'Subiendo tapiz...' : 'Subir imagen de fondo'}
-                </span>
-                <span className="text-[8px] text-gray-500">JPG, PNG · Máx 2MB</span>
-              </label>
-            )}
-            {tapiz && !tapiz.startsWith('http') && (
-              <p className="mt-1 text-[9px] text-gray-500">
-                Tapiz anterior: {tapiz}. Puedes subir una imagen para reemplazarlo.
-              </p>
-            )}
-          </div>
-
           {/* Fechas */}
-          <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2">
-            <div className="w-full min-w-0">
+          <div className="grid w-full grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="w-full">
               <label className="text-[10px] font-medium text-gray-400">Válido desde</label>
               <Input
                 type="date"
                 value={validFrom}
                 onChange={(e) => setValidFrom(e.target.value)}
-                className="mt-0.5 h-9 w-full min-w-0 px-2 text-sm bg-gray-800/50 border-gray-700 text-white"
+                className="mt-0.5 h-8 sm:h-9 w-full px-2 text-sm bg-gray-800/50 border-gray-700 text-white"
               />
             </div>
-            <div className="w-full min-w-0">
+            <div className="w-full">
               <label className="text-[10px] font-medium text-gray-400">Válido hasta</label>
               <Input
                 type="date"
                 value={validUntil}
                 onChange={(e) => setValidUntil(e.target.value)}
-                className="mt-0.5 h-9 w-full min-w-0 px-2 text-sm bg-gray-800/50 border-gray-700 text-white"
+                className="mt-0.5 h-8 sm:h-9 w-full px-2 text-sm bg-gray-800/50 border-gray-700 text-white"
               />
             </div>
           </div>
@@ -469,10 +412,10 @@ export function DailyMenuEditor({ merchantId }: DailyMenuEditorProps) {
           </label>
 
           <Button
-            onClick={guardarMenu}
-            disabled={saving || uploading !== null}
-            className="w-full bg-olive-600 hover:bg-olive-700 text-white text-sm"
-          >
+  onClick={guardarMenu}
+  disabled={saving || uploading}
+  className="w-full bg-olive-600 hover:bg-olive-700 text-white text-xs sm:text-sm py-2 sm:py-2.5"
+>
             <Save className="h-4 w-4 mr-1" />
             {saving ? 'Guardando...' : editingId ? 'Guardar cambios' : 'Guardar menú'}
           </Button>
@@ -488,9 +431,8 @@ export function DailyMenuEditor({ merchantId }: DailyMenuEditorProps) {
           </div>
         )}
 
-      
         {menus.map((menu) => (
-          <Card key={menu.id} className={`p-3 border ${menu.active ? 'border-olive-500 bg-olive-500/10' : 'border-gray-700 bg-gray-800/30'}`}>
+          <Card key={menu.id} className={`p-2 sm:p-3 border ${menu.active ? 'border-olive-500 bg-olive-500/10' : 'border-gray-700 bg-gray-800/30'}`}>
             <div className="flex items-start justify-between gap-2">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
@@ -507,9 +449,6 @@ export function DailyMenuEditor({ merchantId }: DailyMenuEditorProps) {
                 {menu.description && (
                   <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">{menu.description}</p>
                 )}
-                <p className="text-[10px] text-gray-500 mt-0.5">
-                  Tapiz: {menu.tapiz?.startsWith('http') ? 'Imagen personalizada' : menu.tapiz || 'Sin tapiz'}
-                </p>
               </div>
               <div className="flex flex-col gap-1 shrink-0">
                 {!menu.active && (
@@ -521,7 +460,7 @@ export function DailyMenuEditor({ merchantId }: DailyMenuEditorProps) {
                     Activar
                   </button>
                 )}
-                                <button
+                <button
                   type="button"
                   onClick={() => iniciarEdicion(menu)}
                   className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300"

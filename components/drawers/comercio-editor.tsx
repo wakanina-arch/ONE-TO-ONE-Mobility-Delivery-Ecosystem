@@ -7,9 +7,18 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { DailyMenuEditor } from '@/components/daily-menu-editor'
-import { Plus, Camera, ChevronDown, ChevronRight, Trash2, Tag, Save, ImageIcon, ArrowLeft, X } from 'lucide-react'
+import { Plus, Camera, ChevronDown, ChevronRight, Trash2, Tag, Save, ImageIcon, ArrowLeft, X, BookOpen, Utensils, Calendar, ChefHat } from 'lucide-react'
 
-const CATEGORIAS = ['Desayunos', 'Almuerzos', 'Especiales', 'Postres', 'Bebidas']
+const CATEGORIAS = [
+  'Desayunos',
+  'De la casa',
+  'Sopas',
+  'Picoteo',
+  'Tradicionales',
+  'Ensaladas',
+  'Postres',
+  'Bebidas',
+]
 const EVENTOS_PROMO = ['Día de la Madre', 'Día del Padre', 'Navidad', '2x1', 'Vacaciones', 'Día del Amor']
 
 interface Plato {
@@ -184,7 +193,7 @@ export function ComercioEditor({ open, onClose, comercioId, onSave }: ComercioEd
       // 2. Guardar en Supabase (products) — para que la app pública lo vea
       const supabase = createClient()
 
-                  // Guardar plato por plato: insertar nuevos, actualizar existentes, borrar eliminados
+      // Guardar plato por plato: insertar nuevos, actualizar existentes, borrar eliminados
       for (const categoria of itemsRef.current) {
         for (const plato of categoria.opciones) {
           // 1. Si está marcado como eliminado, borrarlo de Supabase
@@ -255,74 +264,77 @@ export function ComercioEditor({ open, onClose, comercioId, onSave }: ComercioEd
   return (
     <div className="p-3 space-y-3">
             <div className="border-b border-gray-700 pb-2">
-        {/* Header unificado: flecha (o título) a la izquierda, X a la derecha */}
-        <div className="flex items-center justify-between gap-3 mb-3">
-          <div className="flex items-center gap-2 min-w-0">
-            {activeSection !== null && (
-              <button
-                type="button"
-                onClick={() => setActiveSection(null)}
-                className="text-gray-400 hover:text-white transition-colors shrink-0"
-                aria-label="Volver a Gestión de Producción"
-              >
-                <ArrowLeft className="h-5 w-5" />
-              </button>
-            )}
-                                      {activeSection !== null && (
-                <h2 className="text-lg font-bold text-white truncate">
-                  {activeSection === 'menu'
-                    ? 'Carta'
-                    : activeSection === 'dailyMenu'
-                      ? 'Menú'
-                      : activeSection === 'reservas'
-                        ? 'Reservas'
-                      : 'Catering'}
-                            {activeSection === 'dailyMenu' && (
-        <DailyMenuEditor merchantId={comercioId} />
-      )}
-                </h2>
-              )}
-          </div>
-          
-        </div>
+       {/* Header: flecha + título */}
+<div className="flex items-center justify-between gap-3 mb-3">
+  <div className="flex items-center gap-2 min-w-0">
+    {activeSection !== null && (
+      <button
+        type="button"
+        onClick={() => setActiveSection(null)}
+        className="text-gray-400 hover:text-white transition-colors shrink-0"
+        aria-label="Volver a Gestión de Producción"
+      >
+        <ArrowLeft className="h-5 w-5" />
+      </button>
+    )}
+    {activeSection !== null && (
+      <h2 className="text-lg font-bold text-white truncate">
+        {activeSection === 'menu'
+          ? 'Carta'
+          : activeSection === 'dailyMenu'
+            ? 'Menú'
+            : activeSection === 'reservas'
+              ? 'Reservas'
+              : 'Catering'}
+      </h2>
+    )}
+  </div>
+</div>
+
+{/* Contenido del DailyMenuEditor (FUERA del header) */}
+{activeSection === 'dailyMenu' && (
+  <div className="w-full min-w-0">
+    <DailyMenuEditor merchantId={comercioId} />
+  </div>
+)}
 
         {/* Índice: las 3 entradas (solo cuando no hay sección activa) */}
-                {activeSection === null && (
-          <div className="grid grid-cols-2 gap-3">
-            <button
-              type="button"
-              onClick={() => setActiveSection('menu')}
-              className="flex flex-col items-center gap-2 rounded-xl border border-gray-700 bg-gray-800/50 px-3 py-5 text-center text-white transition-colors hover:border-primary/50 hover:bg-gray-700/50"
-            >
-              <span aria-hidden="true" className="text-2xl">📋</span>
-              <span className="font-semibold text-sm">Carta</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveSection('dailyMenu')}
-              className="flex flex-col items-center gap-2 rounded-xl border border-gray-700 bg-gray-800/50 px-3 py-5 text-center text-white transition-colors hover:border-primary/50 hover:bg-gray-700/50"
-            >
-              <span aria-hidden="true" className="text-2xl">🍽️</span>
-              <span className="font-semibold text-sm">Menú</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveSection('reservas')}
-              className="flex flex-col items-center gap-2 rounded-xl border border-gray-700 bg-gray-800/50 px-3 py-5 text-center text-white transition-colors hover:border-primary/50 hover:bg-gray-700/50"
-            >
-              <span aria-hidden="true" className="text-2xl">📅</span>
-              <span className="font-semibold text-sm">Reservas</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveSection('catering')}
-              className="flex flex-col items-center gap-2 rounded-xl border border-gray-700 bg-gray-800/50 px-3 py-5 text-center text-white transition-colors hover:border-primary/50 hover:bg-gray-700/50"
-            >
-              <span aria-hidden="true" className="text-2xl">🎉</span>
-              <span className="font-semibold text-sm">Catering</span>
-            </button>
-          </div>
-        )}
+        {activeSection === null && (
+  <div className="grid grid-cols-2 gap-3">
+    <button
+      type="button"
+      onClick={() => setActiveSection('menu')}
+      className="flex flex-col items-center gap-2 rounded-xl border border-gray-700 bg-gray-800/50 px-3 py-5 text-center text-white transition-colors hover:border-primary/50 hover:bg-gray-700/50"
+    >
+      <BookOpen className="h-7 w-7 text-amber-400" aria-hidden="true" />
+      <span className="font-semibold text-sm">Carta</span>
+    </button>
+    <button
+      type="button"
+      onClick={() => setActiveSection('dailyMenu')}
+      className="flex flex-col items-center gap-2 rounded-xl border border-gray-700 bg-gray-800/50 px-3 py-5 text-center text-white transition-colors hover:border-primary/50 hover:bg-gray-700/50"
+    >
+      <Utensils className="h-7 w-7 text-amber-400" aria-hidden="true" />
+      <span className="font-semibold text-sm">Menú</span>
+    </button>
+    <button
+      type="button"
+      onClick={() => setActiveSection('reservas')}
+      className="flex flex-col items-center gap-2 rounded-xl border border-gray-700 bg-gray-800/50 px-3 py-5 text-center text-white transition-colors hover:border-primary/50 hover:bg-gray-700/50"
+    >
+      <Calendar className="h-7 w-7 text-amber-400" aria-hidden="true" />
+      <span className="font-semibold text-sm">Reservas</span>
+    </button>
+    <button
+      type="button"
+      onClick={() => setActiveSection('catering')}
+      className="flex flex-col items-center gap-2 rounded-xl border border-gray-700 bg-gray-800/50 px-3 py-5 text-center text-white transition-colors hover:border-primary/50 hover:bg-gray-700/50"
+    >
+      <ChefHat className="h-7 w-7 text-amber-400" aria-hidden="true" />
+      <span className="font-semibold text-sm">Catering</span>
+    </button>
+  </div>
+)}
 
         {/* Sección activa: botones de acción (solo en Carta Menú) */}
         {activeSection === 'menu' && (
@@ -374,17 +386,29 @@ export function ComercioEditor({ open, onClose, comercioId, onSave }: ComercioEd
             </button>
             
             {expandidas[catIdx] && (
-              <div className="p-2 space-y-2">
-                {cat.opciones.length === 0 && (
-                  <div className="text-center py-3 border-2 border-dashed border-gray-600 rounded-lg bg-gray-800/20">
-                    <p className="text-xs text-gray-400">No hay productos en {cat.nombre.toLowerCase()}</p>
-                    <p className="text-[10px] text-gray-500 mt-0.5">Haz clic en &quot;Añadir plato&quot; para comenzar</p>
-                  </div>
-                )}
-                
-                {cat.opciones.map((plato, optIdx) => (
-                  !plato.eliminado && (
-                    <div key={plato.id} className="border border-gray-700 rounded-lg p-2 space-y-2 bg-gray-800/20">
+  <div className="p-2 space-y-2">
+    {/* Botón "Añadir plato" al inicio */}
+    <Button
+      variant="outline"
+      size="sm"
+      className="w-full border-dashed border-gray-600 text-gray-400 hover:text-gray-200 hover:border-gray-500 text-xs h-7"
+      onClick={() => addPlato(catIdx)}
+    >
+      <Plus className="h-3 w-3 mr-1" /> Añadir plato
+    </Button>
+
+    {/* Mensaje si no hay platos */}
+    {cat.opciones.length === 0 && (
+      <div className="text-center py-3 border-2 border-dashed border-gray-600 rounded-lg bg-gray-800/20">
+        <p className="text-xs text-gray-400">No hay productos en {cat.nombre.toLowerCase()}</p>
+        <p className="text-[10px] text-gray-500 mt-0.5">Haz clic en &quot;Añadir plato&quot; para comenzar</p>
+      </div>
+    )}
+    
+    {/* Lista de platos */}
+    {cat.opciones.map((plato, optIdx) => (
+      !plato.eliminado && (
+        <div key={plato.id} className="border border-gray-700 rounded-lg p-2 space-y-2 bg-gray-800/20">
                       {/* Nombre */}
                       <div>
                         <label className="text-[10px] font-medium text-gray-400">Nombre del plato</label>
@@ -555,11 +579,9 @@ export function ComercioEditor({ open, onClose, comercioId, onSave }: ComercioEd
                   )
                 ))}
                 
-                <Button variant="outline" size="sm" className="w-full border-dashed border-gray-600 text-gray-400 hover:text-gray-200 hover:border-gray-500 text-xs h-7" onClick={() => addPlato(catIdx)}>
-                  <Plus className="h-3 w-3 mr-1" /> Añadir plato
-                </Button>
-              </div>
-            )}
+                
+  </div>
+)}
           </div>
         ))}
       </div>
