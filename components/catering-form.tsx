@@ -149,8 +149,8 @@ export function CateringForm({ comercio, onBack }: CateringFormProps) {
                     {comercio.name}
                   </p>
                   <h1 className="mt-2 font-serif text-3xl font-bold text-[#1a1a1a]">
-                    ¡Solicitud enviada!
-                  </h1>
+  ¡Parte enviado!
+</h1>
                   <div className="mx-auto mt-3 h-0.5 w-16 bg-[#2d6a4f]" />
                   <p className="mt-3 font-serif text-sm italic text-[#1a1a1a]/70">
                     "Gracias por confiar en nosotros."
@@ -168,8 +168,8 @@ export function CateringForm({ comercio, onBack }: CateringFormProps) {
                   <p><strong>Fecha del evento:</strong> {form.fecha}</p>
                   <p><strong>Comensales:</strong> {form.comensales}</p>
                   <p className="mt-4 rounded-lg border border-[#8b1e3f]/20 bg-white/40 p-3 text-xs">
-                    El comercio te contactará en las próximas <strong>24 horas</strong> al teléfono <strong>{form.telefono}</strong> para enviarte las propuestas de menú y coordinar los detalles.
-                  </p>
+  El comercio te contactará en las próximas <strong>24 horas</strong> al teléfono <strong>{form.telefono}</strong> con las propuestas de menú. <strong>Tu celebración está un paso más cerca.</strong>
+</p>
                 </div>
 
                 <Button
@@ -203,7 +203,7 @@ export function CateringForm({ comercio, onBack }: CateringFormProps) {
 
           <div className="relative overflow-hidden rounded-3xl bg-[#f7f3ea] p-1 shadow-2xl">
             <div className="relative rounded-[1.25rem] border-2 border-[#8b1e3f]/60 p-1">
-              <div className="relative rounded-2xl border border-[#1a1a1a]/15 p-6 sm:p-8">
+              <div className="relative rounded-2xl border border-[#1a1a1a]/15 p-4 sm:p-6">
                 <div className="text-center">
   {/* Nombre del comercio arqueado */}
   <div className="flex justify-center">
@@ -236,21 +236,19 @@ export function CateringForm({ comercio, onBack }: CateringFormProps) {
                   <button
                     type="button"
                     onClick={() => setModo('catering')}
-                    className="group flex flex-col items-center gap-2 rounded-2xl border-2 border-[#8b1e3f]/30 bg-white/60 p-6 transition-all hover:border-[#8b1e3f] hover:bg-white/80"
-                  >
+                    className="group flex flex-col items-center gap-1.5 rounded-2xl border-2 border-[#8b1e3f]/30 bg-white/60 p-4 transition-all hover:border-[#8b1e3f] hover:bg-white/80">
                     <ChefHat className="h-10 w-10 text-[#8b1e3f]" />
                     <h3 className="font-serif text-xl font-bold text-[#8b1e3f]">Catering a domicilio</h3>
-                    <p className="text-xs text-[#1a1a1a]/60">Llevamos el sabor de casa a tu evento</p>
+                    <p className="text-xs text-[#1a1a1a]/60">Llevamos el sabor de casa a tu evento o celebración</p>
                   </button>
 
                   <button
                     type="button"
                     onClick={() => setModo('bufete')}
-                    className="group flex flex-col items-center gap-2 rounded-2xl border-2 border-[#2d6a4f]/30 bg-white/60 p-6 transition-all hover:border-[#2d6a4f] hover:bg-white/80"
-                  >
+                    className="group flex flex-col items-center gap-1.5 rounded-2xl border-2 border-[#8b1e3f]/30 bg-white/60 p-4 transition-all hover:border-[#8b1e3f] hover:bg-white/80">
                     <HandPlatter className="h-10 w-10 text-[#2d6a4f]" />
                     <h3 className="font-serif text-xl font-bold text-[#2d6a4f]">Bufete en el local</h3>
-                    <p className="text-xs text-[#1a1a1a]/60">Celebra en nuestro salón, con el sabor de siempre</p>
+                    <p className="text-xs text-[#1a1a1a]/60">Celebra en nuestro salón, con el sabor y la alegría de siempre</p>
                   </button>
                 </div>
               </div>
@@ -277,7 +275,7 @@ export function CateringForm({ comercio, onBack }: CateringFormProps) {
 
         <div className="relative overflow-hidden rounded-3xl bg-[#f7f3ea] p-1 shadow-2xl">
           <div className="relative rounded-[1.25rem] border-2 border-[#8b1e3f]/60 p-1">
-            <div className="relative rounded-2xl border border-[#1a1a1a]/15 p-6 sm:p-8">
+            <div className="relative rounded-2xl border border-[#1a1a1a]/15 p-4 sm:p-6">
               <div className="text-center">
   {/* Nombre del comercio arqueado */}
   <div className="flex justify-center">
@@ -298,15 +296,17 @@ export function CateringForm({ comercio, onBack }: CateringFormProps) {
   </div>
 
   <h1 className="mt-2 font-serif text-3xl font-bold text-[#1a1a1a] sm:text-4xl">
-    {modo === 'catering' ? 'Catering a domicilio' : 'Bufete en el local'}
+    {modo === 'catering' ? 'Parte de Catering' : 'Parte de Bufete'}
   </h1>
   <div className="mx-auto mt-3 h-0.5 w-16 bg-[#2d6a4f]" />
-  <p className="mt-3 font-serif text-sm italic text-[#1a1a1a]/70">
-    {modo === 'catering' ? '"Llevamos el sabor de casa a tu evento."' : '"Celebra en nuestro salón, con el sabor de siempre."'}
-  </p>
+  <p className="mt-1 font-serif text-sm italic text-[#1a1a1a]/70">
+  {modo === 'catering' 
+    ? '"El sabor de casa en tus ceremoniales inolvidables."' 
+    : '"Tú, tus amigos, el salón, fiesta, alegría. ¡Un recuerdo inolvidable!."'}
+</p>
 </div>
 
-              <form onSubmit={handleSubmit} className="mt-6 space-y-5">
+              <form onSubmit={handleSubmit} className="mt-4 space-y-3">
                 {/* BLOQUE 1: Datos del evento */}
                 <div className="grid gap-4 sm:grid-cols-2">
                   <label className="space-y-1 text-xs font-medium text-[#1a1a1a]/70">
@@ -348,7 +348,7 @@ export function CateringForm({ comercio, onBack }: CateringFormProps) {
 
                 {/* BLOQUE 2: Dirección / Exclusividad (condicional) */}
                 {modo === 'catering' ? (
-                  <div className="space-y-4 rounded-lg border border-[#1a1a1a]/10 bg-white/30 p-4">
+                  <div className="space-y-3 rounded-lg border border-[#1a1a1a]/10 bg-white/30 p-3">
                     <p className="text-xs font-bold uppercase tracking-widest text-[#8b1e3f]">Entrega</p>
                     <label className="block space-y-1 text-xs font-medium text-[#1a1a1a]/70">
                       <span>Dirección de entrega *</span>
@@ -364,7 +364,7 @@ export function CateringForm({ comercio, onBack }: CateringFormProps) {
                     </label>
                   </div>
                 ) : (
-                  <div className="space-y-4 rounded-lg border border-[#1a1a1a]/10 bg-white/30 p-4">
+                  <div className="space-y-3 rounded-lg border border-[#1a1a1a]/10 bg-white/30 p-3">
                     <p className="text-xs font-bold uppercase tracking-widest text-[#8b1e3f]">Exclusividad del local</p>
                     <label className="block space-y-1 text-xs font-medium text-[#1a1a1a]/70">
                       <span>¿Qué parte del local necesitas?</span>
@@ -434,7 +434,7 @@ export function CateringForm({ comercio, onBack }: CateringFormProps) {
                   </label>
                 </div>
 
-                <Button type="submit" disabled={enviando} className="w-full rounded-xl bg-[#8b1e3f] py-4 text-sm font-bold uppercase tracking-widest text-white shadow-lg transition-all hover:bg-[#a82450]">
+                <Button type="submit" disabled={enviando} className="w-full rounded-xl bg-[#8b1e3f] py-3 text-sm font-bold uppercase tracking-widest text-white shadow-lg transition-all hover:bg-[#a82450]">
                   {enviando ? 'Enviando...' : '🔱 Solicitar cotización'}
                 </Button>
               </form>

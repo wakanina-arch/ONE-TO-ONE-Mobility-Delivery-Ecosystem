@@ -53,7 +53,7 @@ export function ReservationForm({ comercio, onBack }: ReservationFormProps) {
       if (actual === 'pedido') return 'recoger'
       return 'mesa'
     })
-  }, 6000) // 6 segundos de tranquilidad
+  }, 5000) // 5 segundos: tiempo justo para leer sin impacientar
   return () => clearInterval(intervalo)
 }, [])
   const [form, setForm] = useState<ReservationFormValues>({
@@ -118,7 +118,7 @@ export function ReservationForm({ comercio, onBack }: ReservationFormProps) {
 
           {/* Marco doble con esquinas decorativas (vino) */}
           <div className="relative rounded-[1.25rem] border-2 border-[#8b1e3f]/60 p-1">
-            <div className="relative rounded-2xl border border-[#1a1a1a]/15 p-6 sm:p-8">
+            <div className="relative rounded-2xl border border-[#1a1a1a]/15 p-4 sm:p-6">
               
               {/* Adornos esquineros (verde selva) */}
               <div className="absolute left-2 top-2 h-4 w-4 border-l-2 border-t-2 border-[#2d6a4f]/80" />
@@ -153,15 +153,15 @@ export function ReservationForm({ comercio, onBack }: ReservationFormProps) {
     className="flex transition-transform duration-500 ease-in-out"
     style={{ transform: `translateX(-${modo === 'mesa' ? 0 : modo === 'pedido' ? 100 : 200}%)` }}
   >
-    <h1 className="w-full shrink-0 font-serif text-4xl font-bold text-[#1a1a1a] sm:text-5xl flex items-center justify-center">
-      Sabor de barrio
-    </h1>
-    <h1 className="w-full shrink-0 font-serif text-4xl font-bold text-[#1a1a1a] sm:text-5xl flex items-center justify-center">
-      Momentos únicos
-    </h1>
-    <h1 className="w-full shrink-0 font-serif text-4xl font-bold text-[#1a1a1a] sm:text-5xl flex items-center justify-center">
-      Reserva tu mesa
-    </h1>
+    <h1 className="w-full shrink-0 font-serif text-3xl font-bold text-[#1a1a1a] sm:text-4xl flex items-center justify-center">
+  Sabor de barrio
+</h1>
+<h1 className="w-full shrink-0 font-serif text-3xl font-bold text-[#1a1a1a] sm:text-4xl flex items-center justify-center">
+  Momentos únicos
+</h1>
+<h1 className="w-full shrink-0 font-serif text-3xl font-bold text-[#1a1a1a] sm:text-4xl flex items-center justify-center">
+  Reserva tu mesa
+</h1>
   </div>
 </div>
 
@@ -199,12 +199,12 @@ export function ReservationForm({ comercio, onBack }: ReservationFormProps) {
               </div>
 
               {/* Aviso de cortesía (siempre de reserva de mesa) */}
-              <div className="mt-5 rounded-lg border border-[#eab308]/40 bg-[#eab308]/15 p-3 text-center text-xs text-[#1a1a1a]/80">
+              <div className="mt-3 rounded-lg border border-[#eab308]/40 bg-[#eab308]/15 p-2.5 text-center text-xs text-[#1a1a1a]/80">
                 Te esperamos <strong className="text-[#8b1e3f]">15 minutos</strong>. Pasado ese tiempo, la mesa se libera para otro comensal.
               </div>
 
               {/* Formulario */}
-              <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+              <form onSubmit={handleSubmit} className="mt-4 space-y-3">
                 <div className="grid gap-4 sm:grid-cols-2">
                   <label className="space-y-1 text-xs font-medium text-[#1a1a1a]/70">
                     <span>Nombre del cliente</span>
@@ -315,11 +315,11 @@ export function ReservationForm({ comercio, onBack }: ReservationFormProps) {
                 </label>
 
                 <Button
-                  type="submit"
-                  className="w-full rounded-xl bg-[#8b1e3f] py-4 text-sm font-bold uppercase tracking-widest text-white shadow-lg transition-all hover:bg-[#a82450]"
-                >
-                  🔱 Confirmar reserva de mesa
-                </Button>
+  type="submit"
+  className="w-full rounded-xl bg-[#8b1e3f] py-3 text-sm font-bold uppercase tracking-widest text-white shadow-lg transition-all hover:bg-[#a82450]"
+>
+  🔱 Confirmar reserva de mesa
+</Button>
               </form>
             </div>
           </div>
