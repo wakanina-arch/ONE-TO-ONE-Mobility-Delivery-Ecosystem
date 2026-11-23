@@ -45,6 +45,7 @@ export function ComercioLanding({
   const [horarios, setHorarios] = useState<MerchantSchedule[]>([])
   const [menuDelDia, setMenuDelDia] = useState<PublishedDailyMenu | null>(null)
   const { addItem } = useCartStore()
+  const [cargando, setCargando] = useState(true)
 
   useEffect(() => {
     let active = true
@@ -62,6 +63,7 @@ export function ComercioLanding({
       if (active) {
         setHorarios(horariosData)
         setMenuDelDia(menuData)
+        setCargando(false)
       }
     }
 
@@ -168,57 +170,84 @@ export function ComercioLanding({
             </div>
           </button>
         </section>
+<div className={`transition-opacity duration-1000 ease-in-out ${cargando ? 'opacity-100' : 'opacity-0'}`}>
+  {cargando && (
+    <div className="flex flex-col items-center gap-6 py-4">
+      <div className="relative aspect-square w-full max-w-[320px] animate-pulse rounded-3xl bg-white/5">
+{/* Marca de agua en diagonal (más grande, se desborda) */}
+        <div className="absolute inset-0 opacity-20">
+  <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 -rotate-25 text-center -ml-4 -mt-4">
+    <span className="block text-6xl">🔱</span>
+    <span className="mt-1 block whitespace-nowrap font-serif text-5xl font-bold tracking-widest text-white/60">
+      ONE TO ONE
+    </span>
+  </div>
+</div>
+      </div>
+      <div className="grid w-full max-w-2xl grid-cols-1 gap-6 sm:grid-cols-2">
+        <div className="space-y-3">
+          <div className="h-4 w-24 animate-pulse rounded bg-white/5" />
+          <div className="h-8 w-48 animate-pulse rounded bg-white/5" />
+          <div className="h-4 w-full animate-pulse rounded bg-white/5" />
+        </div>
+        <div className="space-y-3 sm:border-l sm:border-white/10 sm:pl-6">
+          <div className="h-8 w-20 animate-pulse rounded bg-white/5" />
+          <div className="h-12 w-full animate-pulse rounded bg-white/5" />
+        </div>
+      </div>
+    </div>
+  )}
+</div>
 
-        {/* 2. MENÚ DEL DÍA (Sin tapiz, plato + texto debajo) */}
-               {menuDelDia && (
-          <div className="flex flex-col items-center gap-6 py-4">
-            {/* Imagen centrada (sin contenedor) */}
-            {menuDelDia.image_url && (
-              <div className="relative aspect-square w-full max-w-[320px] overflow-hidden rounded-3xl shadow-2xl">
-                <img
-                  src={menuDelDia.image_url}
-                  alt={menuDelDia.title}
-                  className="h-full w-full object-cover"
-                />
-              </div>
-            )}
+{cargando ? null : menuDelDia ? (
+  // CONTENIDO REAL con fade-in
+  <div className="flex flex-col items-center gap-6 py-4 transition-opacity duration-1000 ease-in-out opacity-100">
+    {/* Imagen centrada (sin contenedor) */}
+    {menuDelDia.image_url && (
+      <div className="relative aspect-square w-full max-w-[320px] overflow-hidden rounded-3xl shadow-2xl">
+        <img
+          src={menuDelDia.image_url}
+          alt={menuDelDia.title}
+          className="h-full w-full object-cover"
+        />
+      </div>
+    )}
 
-            {/* Texto en dos columnas (debajo de la imagen) */}
-            <div className="grid w-full max-w-2xl grid-cols-1 gap-6 sm:grid-cols-2">
-              
-              {/* Columna Izquierda */}
-              <div className="flex flex-col items-center text-center sm:items-start sm:text-left">
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-400 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-black">
-                  {menuDelDia.tipo === 'especial' ? '✨ Especial' :
-                   menuDelDia.tipo === 'promo' ? '🏷️ Promo' :
-                   '🔥 Menú de hoy'}
-                </span>
-                <h2 className="mt-3 font-serif text-3xl font-bold text-white sm:text-4xl">
-                  {menuDelDia.title}
-                </h2>
-                {menuDelDia.description && (
-                  <p className="mt-2 text-sm text-white/60">
-                    {menuDelDia.description}
-                  </p>
-                )}
-              </div>
-
-              {/* Columna Derecha (con pasamanos invisible) */}
-              <div className="flex flex-col items-center justify-center gap-3 sm:border-l sm:border-white/10 sm:pl-6 sm:items-end">
-                <p className="text-3xl font-bold text-amber-300">
-                  ${Number(menuDelDia.offer_price).toFixed(2)}
-                </p>
-                <Button
-                  type="button"
-                  onClick={handlePedirAhora}
-                  className="w-full rounded-xl bg-amber-500 px-8 py-4 text-sm font-bold text-black shadow-lg transition-all hover:scale-[1.02] hover:bg-amber-400 sm:w-auto"
-                >
-                  Pedir ahora
-                </Button>
-              </div>
-            </div>
-          </div>
+    {/* Texto en dos columnas (debajo de la imagen) */}
+    <div className="grid w-full max-w-2xl grid-cols-1 gap-6 sm:grid-cols-2">
+      {/* Columna Izquierda */}
+      <div className="flex flex-col items-center text-center sm:items-start sm:text-left">
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-400 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-black">
+          {menuDelDia.tipo === 'especial' ? '✨ Especial' :
+           menuDelDia.tipo === 'promo' ? '🏷️ Promo' :
+           '🔥 Menú de hoy'}
+        </span>
+        <h2 className="mt-3 font-serif text-3xl font-bold text-white sm:text-4xl">
+          {menuDelDia.title}
+        </h2>
+        {menuDelDia.description && (
+          <p className="mt-2 text-sm text-white/60">
+            {menuDelDia.description}
+          </p>
         )}
+      </div>
+
+      {/* Columna Derecha (con pasamanos invisible) */}
+      <div className="flex flex-col items-center justify-center gap-3 sm:border-l sm:border-white/10 sm:pl-6 sm:items-end">
+        <p className="text-3xl font-bold text-amber-300">
+          ${Number(menuDelDia.offer_price).toFixed(2)}
+        </p>
+        <Button
+          type="button"
+          onClick={handlePedirAhora}
+          className="w-full rounded-xl bg-amber-500 px-8 py-4 text-sm font-bold text-black shadow-lg transition-all hover:scale-[1.02] hover:bg-amber-400 sm:w-auto"
+        >
+          Pedir ahora
+        </Button>
+      </div>
+    </div>
+  </div>
+) : null}
 
         {/* 3. INFORMACIÓN DEL COMERCIO (con logo arriba) */}
         <section className="rounded-3xl border border-white/10 bg-white/[0.03] p-6 sm:p-8">
