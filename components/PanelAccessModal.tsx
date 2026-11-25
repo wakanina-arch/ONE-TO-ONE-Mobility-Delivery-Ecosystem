@@ -81,13 +81,13 @@ export function PanelAccessModal({ open, onClose, onSuccess }: PanelAccessModalP
       )
 
       setRiders(
-        (rRes.data || []).map((r) => ({
-          type: 'rider' as const,
-          id: r.id,
-          name: r.username || 'Ryder',
-          avatar: r.avatar || undefined,
-        }))
-      )
+  (rRes.data || []).map((r) => ({
+    type: 'rider' as const,
+    id: r.id, // <-- ESTE es el ID de la tabla riders
+    name: r.username || 'Ryder',
+    avatar: r.avatar || undefined,
+  }))
+)
 
       setLoading(false)
     }
