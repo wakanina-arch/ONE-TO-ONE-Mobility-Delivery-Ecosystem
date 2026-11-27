@@ -52,20 +52,20 @@ interface Order {
 // ==================== CONFIGURACIÓN DE ESTADOS ====================
 
 const ESTADOS_CONFIG: Record<string, { label: string; color: string; tab: Tab }> = {
-  created:    { label: 'Nuevo',        color: 'bg-amber-500',   tab: 'recepcion' },
-  accepted:   { label: 'Aceptado',     color: 'bg-blue-500',    tab: 'recepcion' },
-  preparing:  { label: 'Preparando',   color: 'bg-orange-500',  tab: 'produccion' },
-  ready:      { label: 'Listo',        color: 'bg-emerald-500', tab: 'entrega' },
-picked_up:  { label: 'Para Recoger', color: 'bg-teal-500',    tab: 'entrega' },
-  delivering: { label: 'En camino',    color: 'bg-purple-500',  tab: 'entrega' },
-  delivered:  { label: 'Entregado',    color: 'bg-gray-500',    tab: 'historial' },
-  cancelled:  { label: 'Cancelado',    color: 'bg-red-500',     tab: 'historial' },
+  created:    { label: 'Nuevo',           color: 'bg-amber-500',   tab: 'recepcion' },
+  accepted:   { label: 'Aceptado',        color: 'bg-blue-500',    tab: 'recepcion' },
+  preparing:  { label: 'Preparando',      color: 'bg-orange-500',  tab: 'produccion' },
+  ready:      { label: 'Para Entregar',   color: 'bg-emerald-500', tab: 'produccion' }, // Etiqueta esmeralda
+  picked_up:  { label: 'En camino',       color: 'bg-amber-500',   tab: 'entrega' },    // Indicador ámbar
+  delivering: { label: 'Por Confirmar',   color: 'bg-emerald-500', tab: 'entrega' },    // Etiqueta esmeralda
+  delivered:  { label: 'Entregado',       color: 'bg-gray-500',    tab: 'historial' },
+  cancelled:  { label: 'Cancelado',       color: 'bg-red-500',     tab: 'historial' },
 }
 
 const ESTADOS_POR_TAB: Record<Tab, string[]> = {
   recepcion:  ['created', 'accepted'],
-  produccion: ['preparing'],
-  entrega:    ['ready', 'picked_up', 'delivering'],
+  produccion: ['preparing', 'ready'], // Aquí se queda hasta que el Ryder lo recoja
+  entrega:    ['picked_up', 'delivering'], // Solo cuando ya se lo llevó el Ryder
   historial:  ['delivered', 'cancelled'],
 }
 
@@ -175,55 +175,56 @@ function OrderCard({
           <Printer className="h-3 w-3 mr-0.5" /> Imprimir
         </Button>
 
-        {activeTab === 'recepcion' && (
-  <>
-    <Button
-      onClick={() => onUpdateStatus(order.id, 'preparing')}
-      className="flex-1 h-7 text-[9px] bg-orange-500 hover:bg-orange-600 text-white"
-    >
-      <ChefHat className="h-3 w-3 mr-1" /> Aceptar
-    </Button>
-    <Button
-      variant="outline"
-      onClick={() => onUpdateStatus(order.id, 'cancelled')}
-      className="h-7 px-2 border-destructive text-destructive hover:bg-destructive/10"
-    >
-      <XCircle className="h-3 w-3" />
-    </Button>
-  </>
-)}
-
-        {activeTab === 'produccion' && (
-          <Button
-            onClick={() => onUpdateStatus(order.id, 'ready')}
-            className="flex-1 h-7 text-[9px] bg-emerald-500 hover:bg-emerald-600 text-white"
-          >
-            <CheckCircle className="h-3 w-3 mr-1" /> Listo
-          </Button>
+                {activeTab === 'recepcion' && (
+          <>
+            <Button
+              onClick={() => onUpdateStatus(order.id, 'preparing')}
+              className="flex-1 h-7 text-[9px] bg-orange-500 hover:bg-orange-600 text-white" // Botón Naranja
+            >
+              <ChefHat className="h-3 w-3 mr-1" /> Aceptar
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => onUpdateStatus(order.id, 'cancelled')}
+              className="h-7 px-2 border-destructive text-destructive hover:bg-destructive/10"
+            >
+              <XCircle className="h-3 w-3" />
+            </Button>
+          </>
         )}
 
-        {activeTab === 'entrega' && (
+                  {activeTab === 'produccion' && (
           <>
+            {order.status === 'preparing' && (
+              <Button
+                onClick={() => onUpdateStatus(order.id, 'ready')}
+                className="flex-1 h-7 text-[9px] bg-emerald-500 hover:bg-emerald-600 text-white"
+              >
+                <CheckCircle className="h-3 w-3 mr-1" /> Listo
+              </Button>
+            )}
             {order.status === 'ready' && (
               <Button
                 onClick={() => onUpdateStatus(order.id, 'picked_up')}
-                className="flex-1 h-7 text-[9px] bg-teal-500 hover:bg-teal-600 text-white"
+                className="flex-1 h-7 text-[9px] bg-purple-500 hover:bg-purple-600 text-white" // Botón Morado
               >
-                <Package className="h-3 w-3 mr-1" /> Para Recoger
+                <Package className="h-3 w-3 mr-1" /> Para Entregar
               </Button>
             )}
+          </>
+        )}
+
+                        {activeTab === 'entrega' && (
+          <>
             {order.status === 'picked_up' && (
-              <Button
-                onClick={() => onUpdateStatus(order.id, 'delivering')}
-                className="flex-1 h-7 text-[9px] bg-purple-500 hover:bg-purple-600 text-white"
-              >
-                <Package className="h-3 w-3 mr-1" /> En camino
-              </Button>
+              <div className="flex-1 h-7 flex items-center justify-center rounded-md bg-amber-500/20 text-amber-500 text-[10px] font-bold animate-pulse">
+                <Package className="h-3 w-3 mr-1" /> En camino...
+              </div>
             )}
             {order.status === 'delivering' && (
               <Button
                 onClick={() => onUpdateStatus(order.id, 'delivered')}
-                className="flex-1 h-7 text-[9px] bg-gray-500 hover:bg-gray-600 text-white"
+                className="flex-1 h-7 text-[9px] bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/20" // Botón Esmeralda
               >
                 <CheckCircle className="h-3 w-3 mr-1" /> Entregado
               </Button>

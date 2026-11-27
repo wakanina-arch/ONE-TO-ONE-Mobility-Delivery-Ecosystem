@@ -9,6 +9,7 @@ import type { Order } from '@/lib/delivery/delivery-models'
 import { obtenerMiPosicion, entrarACola, moverAlFinal, actualizarEstadoCola, salirDeCola } from '@/lib/delivery/queue-logic'
 import { createClient } from '@/lib/supabase/client'
 import { getPanelSession } from '@/components/PanelAccessModal'
+import { QRScanner } from './components/QRScanner'
 import { getWeatherWithRain, type WeatherZone, ZONE_COORDS } from '@/lib/delivery/weather-service'
 import { MapPin, User, LogOut, Sun, CloudRain, Navigation, Bike, CheckCircle2, Thermometer } from 'lucide-react'
 
@@ -38,6 +39,7 @@ export default function DeliveryMapPage() {
   const [errorAceptacion, setErrorAceptacion] = useState<string | null>(null)
   const [miPosicion, setMiPosicion] = useState<number | null>(1)
   const [totalEnCola, setTotalEnCola] = useState<number>(0)
+    const [mostrarEscanner, setMostrarEscanner] = useState(false)
   const [clima, setClima] = useState<{ temp: number; lluvia: number; condicion: string } | null>(null)
 
   // Cargar sector guardado
@@ -245,12 +247,27 @@ export default function DeliveryMapPage() {
     // Aquí iría la lógica de mover al final de la cola (back)
   }
 
-  const handleServicio = () => {
+      const handleServicio = async () => {
     if (!activeOrder) return
+
     if (estadoServicio === null) {
+      // 1. El Ryder marca como recogido → 'picked_up'
+      const supabase = createClient()
+      await supabase
+        .from('orders')
+        .update({ status: 'picked_up' })
+        .eq('id', activeOrder.id)
+
       setEstadoServicio('recogido')
       setMessage('✅ Pedido recogido. Sigue la ruta al cliente.')
     } else {
+      // 2. El Ryder marca como entregado → 'delivering' (NO 'delivered')
+      const supabase = createClient()
+      await supabase
+        .from('orders')
+        .update({ status: 'delivering' }) // 👈 TIENE QUE SER 'delivering'
+        .eq('id', activeOrder.id)
+
       window.dispatchEvent(new CustomEvent('pedido-entregado', { detail: { orderId: activeOrder.id } }))
       setActiveOrder(null)
       setEstadoServicio(null)
@@ -307,12 +324,56 @@ export default function DeliveryMapPage() {
 
       {/* 2. MAPA OPERATIVO */}
       <main className="relative flex-1 bg-[#0b0d0e]">
-        <DynamicMap
+                <DynamicMap
           sectorId={sectorId}
           activeOrder={activeOrder}
           showOnlyTask={Boolean(activeOrder)}
           onSelectMerchant={async (merchantId: string) => {
-            // ... (lógica de selección de comercio intacta)
+            // Buscar el pedido pendiente de ese comercio
+            const supabase = createClient()
+            const { data: orderData } = await supabase
+              .from('orders')
+              .select(`
+                id,
+                status,
+                total,
+                delivery_address,
+                delivery_lat,
+                delivery_lng,
+                created_at,
+                merchant_id,
+                merchants!inner ( name, sector, address )
+              `)
+              .eq('merchant_id', merchantId)
+              .eq('status', 'preparing')
+              .is('rider_id', null)
+              .order('created_at', { ascending: true })
+              .limit(1)
+
+            if (orderData && orderData.length > 0) {
+              const o = orderData[0] as any
+              const merchant = Array.isArray(o.merchants) ? o.merchants[0] : o.merchants
+
+              setPendingOrder({
+                id: o.id,
+                restaurant: merchant?.name || 'Comercio',
+                customer: o.delivery_address || 'Cliente',
+                pickup: {
+                  name: merchant?.name || 'Comercio',
+                  lat: -0.1807, // TODO: Coordenadas reales
+                  lng: -78.4803,
+                },
+                dropoff: {
+                  name: o.delivery_address || 'Cliente',
+                  lat: o.delivery_lat || -0.18,
+                  lng: o.delivery_lng || -78.48,
+                },
+              })
+              setPendingOrderSource('rescue') // Lo marcamos como rescate
+              setMostrarConfirmacionRechazo(true) // Abrimos el modal de aceptar/rechazar
+            } else {
+              alert('Este pedido ya no está disponible o ya fue tomado.')
+            }
           }}
         />
 
@@ -379,7 +440,7 @@ export default function DeliveryMapPage() {
                 <span className="bg-red-600 text-white text-[10px] font-bold px-2 py-1 rounded-full animate-pulse">Ocupado</span>
               </div>
               
-              <div className="flex items-center gap-4 rounded-xl border border-slate-700 bg-slate-900/50 p-3">
+                            <div className="flex items-center gap-4 rounded-xl border border-slate-700 bg-slate-900/50 p-3">
                 <div className="shrink-0 rounded-lg bg-white p-1.5">
                   <QRCodeSVG value={activeOrder.id} size={80} level="M" />
                 </div>
@@ -389,6 +450,41 @@ export default function DeliveryMapPage() {
                   <p className="text-[10px] font-mono text-emerald-400 mt-1">#{activeOrder.id.slice(-6).toUpperCase()}</p>
                 </div>
               </div>
+
+              {/* Botón de escaneo / simulación */}
+              {estadoServicio === null && (
+                <button
+                  onClick={async () => {
+                    // Si estamos en desarrollo (localhost) o no hay cámara, simulamos
+                    const esLocalhost = window.location.hostname === 'localhost'
+                    
+                    if (esLocalhost) {
+                      // SIMULACIÓN: cambia el estado a 'picked_up'
+                      const supabase = createClient()
+                      const { error } = await supabase
+                        .from('orders')
+                        .update({ status: 'picked_up' })
+                        .eq('id', activeOrder.id)
+
+                      if (error) {
+                        alert('Error al actualizar el pedido: ' + error.message)
+                        return
+                      }
+
+                      setEstadoServicio('recogido')
+                      setMessage('✅ Pedido recogido (simulado). Sigue la ruta al cliente.')
+                    } else {
+                      // PRODUCCIÓN: abre la cámara real
+                      setMostrarEscanner(true)
+                    }
+                  }}
+                  className="w-full rounded-xl border border-blue-500/30 bg-blue-500/10 py-3 text-sm font-bold text-blue-400 transition hover:bg-blue-500/20"
+                >
+                  {window.location.hostname === 'localhost' 
+                    ? '📷 Simular escaneo del QR (Desarrollo)' 
+                    : '📷 Escanear QR del comercio'}
+                </button>
+              )}
 
               <button
                 onClick={handleServicio}
@@ -470,6 +566,22 @@ export default function DeliveryMapPage() {
               </button>
             </div>
           </div>
+                {mostrarEscanner && (
+        <QRScanner
+          onScanSuccess={async (decodedText) => {
+            setMostrarEscanner(false)
+            if (decodedText.trim() !== activeOrder?.id) {
+              alert('❌ El código QR no corresponde a este pedido.')
+              return
+            }
+            const supabase = createClient()
+            await supabase.from('orders').update({ status: 'picked_up' }).eq('id', activeOrder.id)
+            setEstadoServicio('recogido')
+            setMessage('✅ Pedido recogido. Sigue la ruta al cliente.')
+          }}
+          onClose={() => setMostrarEscanner(false)}
+        />
+      )}
         </div>,
         document.body
       )}
